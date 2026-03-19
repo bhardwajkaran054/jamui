@@ -125,6 +125,15 @@
       "category": "Atta & Sugar",
       "emoji": "🌿",
       "stock": 7
+    },
+    {
+      "name": "Sabzi",
+      "price": 10,
+      "unit": "KG",
+      "category": "Atta & Sugar",
+      "emoji": "🫘",
+      "stock": 10,
+      "id": 16
     }
   ],
   "orders": []
