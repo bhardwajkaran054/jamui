@@ -1,11 +1,11 @@
 # Jamui Super Mart 🛒
 
 [![Live Site](https://img.shields.io/badge/Live-jamuisupermart.in-green?style=flat-square&logo=vercel)](https://jamuisupermart.in)
-[![GitHub Pages](https://img.shields.io/badge/Hosted-GitHub%20Pages-blue?style=flat-square&logo=github)](https://bhardwajkaran054.github.io/jamui/)
+[![GitHub Pages](https://img.shields.io/badge/Hosted-GitHub%20Pages-blue?style=flat-square&logo=github)](https://WhoisMonesh.github.io/jamui/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite)](https://vitejs.dev)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
-[![Download Android APK](https://img.shields.io/badge/Download-Android%20App-brightgreen?style=flat-square&logo=android)](https://github.com/bhardwajkaran054/jamui/raw/android-build/jamui-supermart.apk)
+[![Download Android APK](https://img.shields.io/badge/Download-Android%20App-brightgreen?style=flat-square&logo=android)](https://github.com/WhoisMonesh/jamui/raw/android-build/jamui-supermart.apk)
 
 A professional, enterprise-grade grocery store web application for **Jamui Super Mart** in Bihar, India. This project showcases a cutting-edge **"Serverless Git-as-a-Backend"** architecture, providing full dynamic functionality without traditional backend overhead.
 
@@ -15,7 +15,7 @@ A professional, enterprise-grade grocery store web application for **Jamui Super
 
 Experience Jamui Super Mart as a native application on your Android device.
 
-[**📥 Download Latest APK (Direct)**](https://github.com/bhardwajkaran054/jamui/raw/android-build/jamui-supermart.apk)
+[**📥 Download Latest APK (Direct)**](https://github.com/WhoisMonesh/jamui/raw/android-build/jamui-supermart.apk)
 
 *Note: You may need to enable "Install from Unknown Sources" in your Android settings to install this APK.*
 
@@ -110,7 +110,7 @@ To enable the **Direct Download APK** to work on your fork, you must:
 3. Click **Save**.
 
 #### To enable **Signed Release APKs**:
-Add the following [GitHub Secrets](https://github.com/bhardwajkaran054/jamui/settings/secrets/actions) to your repository:
+Add the following [GitHub Secrets](https://github.com/WhoisMonesh/jamui/settings/secrets/actions) to your repository:
 - `KEYSTORE_FILE`: Your `.jks` or `.keystore` file encoded in **Base64**.
 - `KEYSTORE_PASSWORD`: The password for your keystore.
 - `KEY_ALIAS`: The alias of your signing key.
@@ -120,7 +120,7 @@ Add the following [GitHub Secrets](https://github.com/bhardwajkaran054/jamui/set
 
 ## 🤝 Contributors
 
-- **[Karan Bhardwaj](https://github.com/bhardwajkaran054)** — Developer & Owner
+- **[Karan Bhardwaj](https://github.com/WhoisMonesh)** — Developer & Owner
 - **[Monesh](https://github.com/WhoisMonesh)** — Full-Stack Architect & Optimization
 
 ---

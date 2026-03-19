@@ -4,7 +4,7 @@
  * reading and writing a JSON file directly in the GitHub repository.
  */
 
-const REPO_OWNER = 'bhardwajkaran054';
+const REPO_OWNER = 'WhoisMonesh';
 const REPO_NAME = 'jamui';
 const DB_PATH = 'public/db.json';
 
