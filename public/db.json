@@ -141,7 +141,7 @@
       "unit": "1KG",
       "category": "Atta & Sugar",
       "emoji": "🫘",
-      "stock": 10,
+      "stock": 9,
       "id": 17
     }
   ],
@@ -151,5 +151,22 @@
     "Dal",
     "Atta & Sugar"
   ],
-  "orders": []
+  "orders": [
+    {
+      "id": 1773922621250,
+      "items": [
+        {
+          "id": 17,
+          "name": "Sweet",
+          "price": 19,
+          "quantity": 1,
+          "emoji": "🫘",
+          "category": "Atta & Sugar"
+        }
+      ],
+      "total": 19,
+      "timestamp": "2026-03-19T12:17:01.250Z",
+      "status": "pending"
+    }
+  ]
 }
