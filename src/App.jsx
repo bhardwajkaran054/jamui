@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti'
 export default function App() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState(['All'])
+  const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
@@ -47,6 +48,7 @@ export default function App() {
   useEffect(() => {
     fetchProducts()
     fetchCategories()
+    fetchOrders()
     if (token) setIsAdmin(true)
 
     // Secret /admin path detection
@@ -88,6 +90,17 @@ export default function App() {
       setCategories(data)
     } catch (err) {
       console.error('[API ERROR] Categories fetch failed:', err.message)
+    }
+  }
+
+  const fetchOrders = async () => {
+    try {
+      const data = await apiFetch('/orders', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+      setOrders(data)
+    } catch (err) {
+      console.error('[API ERROR] Orders fetch failed:', err.message)
     }
   }
 
@@ -253,7 +266,6 @@ export default function App() {
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0)
 
-  // Show loading screen if we have no products yet
   if (loading && products.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -269,7 +281,8 @@ export default function App() {
   }
 
   // If we are in admin mode and logged in, show the full dashboard
-  if (window.location.pathname === '/admin' && isAdmin && token) {
+  const isPathAdmin = window.location.pathname.endsWith('/admin')
+  if (isPathAdmin && isAdmin && token) {
     return (
       <>
         <AdminDashboard 

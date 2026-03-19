@@ -48,17 +48,18 @@ ChartJS.register(
   Legend
 )
 
-export default function AdminDashboard({ token, onLogout, onAdminAction, products, categories }) {
+export default function AdminDashboard({ token, onLogout, onAdminAction, products, categories, orders: initialOrders }) {
   const [activeTab, setActiveTab] = useState('analytics')
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [orders, setOrders] = useState(initialOrders || [])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchOrders()
-  }, [activeTab])
+    if (initialOrders) setOrders(initialOrders)
+  }, [initialOrders])
 
   const fetchOrders = async () => {
     try {
+      setLoading(true)
       const data = await apiFetch('/orders', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
