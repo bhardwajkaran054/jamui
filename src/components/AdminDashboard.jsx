@@ -210,7 +210,98 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0)
   const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0)
 
+  const generatePDFInvoice = (order) => {
+    const printWindow = window.open('', '_blank');
+    const orderId = `#JM-${order.id.toString().slice(-6)}`;
+    const date = new Date(order.timestamp).toLocaleDateString();
+    const itemsHtml = order.items.map(item => `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+          <div style="font-weight: 700; color: #111827;">${item.emoji} ${item.name}</div>
+          <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">${item.category}</div>
+        </td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align: center; font-weight: 700;">${item.quantity}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align: right; font-weight: 900;">₹${item.price * item.quantity}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice ${orderId}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #374151; line-height: 1.5; }
+            .invoice-container { max-width: 800px; margin: auto; border: 1px solid #e5e7eb; padding: 40px; border-radius: 24px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; }
+            .logo-section h1 { font-size: 24px; font-weight: 900; color: #16a34a; margin: 0; letter-spacing: -0.025em; }
+            .logo-section p { font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; margin: 4px 0 0 0; letter-spacing: 0.1em; }
+            .order-info { text-align: right; }
+            .order-info p { margin: 2px 0; font-size: 12px; font-weight: 700; }
+            .order-id { font-size: 18px; font-weight: 900; color: #111827; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; }
+            .totals { margin-top: 30px; border-top: 2px solid #f3f4f6; padding-top: 20px; }
+            .total-row { display: flex; justify-content: flex-end; gap: 40px; margin-bottom: 8px; font-size: 14px; }
+            .grand-total { font-size: 24px; font-weight: 900; color: #16a34a; margin-top: 10px; }
+            .footer { text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f3f4f6; font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="header">
+              <div class="logo-section">
+                <h1>JAMUI SUPER MART</h1>
+                <p>Professional Grocery Services</p>
+              </div>
+              <div class="order-info">
+                <p class="order-id">${orderId}</p>
+                <p style="color: #9ca3af;">Date: ${date}</p>
+                <p style="color: ${order.status === 'completed' ? '#16a34a' : '#f59e0b'};">Status: ${order.status.toUpperCase()}</p>
+              </div>
+            </div>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th style="text-align: left;">Item Description</th>
+                  <th style="text-align: center;">Quantity</th>
+                  <th style="text-align: right;">Total Price</th>
+                </tr>
+              </thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+            
+            <div class="totals">
+              <div class="total-row">
+                <span style="color: #9ca3af;">SUBTOTAL</span>
+                <span style="width: 100px; text-align: right; font-weight: 700;">₹${order.total}</span>
+              </div>
+              <div class="total-row grand-total">
+                <span>TOTAL DUE</span>
+                <span style="width: 120px; text-align: right;">₹${order.total}</span>
+              </div>
+            </div>
+            
+            <div class="footer">
+              Thank you for choosing Jamui Super Mart!<br/>
+              Visit again: www.jamuisupermart.in | Support: +91 78560 53987
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  }
+
   const sendWhatsAppInvoice = (order) => {
+    // 1. First generate and open PDF for the admin
+    generatePDFInvoice(order)
+
+    // 2. Then prepare and open WhatsApp with the text summary
     const orderId = `#JM-${order.id.toString().slice(-6)}`
     const date = new Date(order.timestamp).toLocaleDateString()
     let message = `*JAMUI SUPER MART - INVOICE*\n`
@@ -902,92 +993,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                           </button>
 
                           <button 
-                            onClick={() => {
-                              const printWindow = window.open('', '_blank');
-                              const orderId = `#JM-${order.id.toString().slice(-6)}`;
-                              const date = new Date(order.timestamp).toLocaleDateString();
-                              const itemsHtml = order.items.map(item => `
-                                <tr>
-                                  <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
-                                    <div style="font-weight: 700; color: #111827;">${item.emoji} ${item.name}</div>
-                                    <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">${item.category}</div>
-                                  </td>
-                                  <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align: center; font-weight: 700;">${item.quantity}</td>
-                                  <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align: right; font-weight: 900;">₹${item.price * item.quantity}</td>
-                                </tr>
-                              `).join('');
-
-                              printWindow.document.write(`
-                                <html>
-                                  <head>
-                                    <title>Invoice ${orderId}</title>
-                                    <style>
-                                      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-                                      body { font-family: 'Inter', sans-serif; padding: 40px; color: #374151; line-height: 1.5; }
-                                      .invoice-container { max-width: 800px; margin: auto; border: 1px solid #e5e7eb; padding: 40px; border-radius: 24px; }
-                                      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; }
-                                      .logo-section h1 { font-size: 24px; font-weight: 900; color: #16a34a; margin: 0; letter-spacing: -0.025em; }
-                                      .logo-section p { font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; margin: 4px 0 0 0; letter-spacing: 0.1em; }
-                                      .order-info { text-align: right; }
-                                      .order-info p { margin: 2px 0; font-size: 12px; font-weight: 700; }
-                                      .order-id { font-size: 18px; font-weight: 900; color: #111827; }
-                                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                                      th { text-align: left; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; }
-                                      .totals { margin-top: 30px; border-top: 2px solid #f3f4f6; padding-top: 20px; }
-                                      .total-row { display: flex; justify-content: flex-end; gap: 40px; margin-bottom: 8px; font-size: 14px; }
-                                      .grand-total { font-size: 24px; font-weight: 900; color: #16a34a; margin-top: 10px; }
-                                      .footer { text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f3f4f6; font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
-                                    </style>
-                                  </head>
-                                  <body>
-                                    <div class="invoice-container">
-                                      <div class="header">
-                                        <div class="logo-section">
-                                          <h1>JAMUI SUPER MART</h1>
-                                          <p>Professional Grocery Services</p>
-                                        </div>
-                                        <div class="order-info">
-                                          <p class="order-id">${orderId}</p>
-                                          <p style="color: #9ca3af;">Date: ${date}</p>
-                                          <p style="color: ${order.status === 'completed' ? '#16a34a' : '#f59e0b'};">Status: ${order.status.toUpperCase()}</p>
-                                        </div>
-                                      </div>
-                                      
-                                      <table>
-                                        <thead>
-                                          <tr>
-                                            <th style="text-align: left;">Item Description</th>
-                                            <th style="text-align: center;">Quantity</th>
-                                            <th style="text-align: right;">Total Price</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>${itemsHtml}</tbody>
-                                      </table>
-                                      
-                                      <div class="totals">
-                                        <div class="total-row">
-                                          <span style="color: #9ca3af;">SUBTOTAL</span>
-                                          <span style="width: 100px; text-align: right; font-weight: 700;">₹${order.total}</span>
-                                        </div>
-                                        <div class="total-row grand-total">
-                                          <span>TOTAL DUE</span>
-                                          <span style="width: 120px; text-align: right;">₹${order.total}</span>
-                                        </div>
-                                      </div>
-                                      
-                                      <div class="footer">
-                                        Thank you for choosing Jamui Super Mart!<br/>
-                                        Visit again: www.jamuisupermart.in | Support: +91 78560 53987
-                                      </div>
-                                    </div>
-                                  </body>
-                                </html>
-                              `);
-                              printWindow.document.close();
-                              setTimeout(() => {
-                                printWindow.print();
-                              }, 500);
-                            }}
+                            onClick={() => generatePDFInvoice(order)}
                             className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
                           >
                             <ShoppingBag className="w-5 h-5" />
