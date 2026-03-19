@@ -211,7 +211,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0)
 
   const generatePDFInvoice = (order) => {
-    const printWindow = window.open('', '_blank');
+    // Generate unique content for the new window
     const orderId = `#JM-${order.id.toString().slice(-6)}`;
     const date = new Date(order.timestamp).toLocaleDateString();
     const itemsHtml = order.items.map(item => `
@@ -225,7 +225,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
       </tr>
     `).join('');
 
-    printWindow.document.write(`
+    const htmlContent = `
       <html>
         <head>
           <title>Invoice ${orderId}</title>
@@ -245,6 +245,9 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
             .total-row { display: flex; justify-content: flex-end; gap: 40px; margin-bottom: 8px; font-size: 14px; }
             .grand-total { font-size: 24px; font-weight: 900; color: #16a34a; margin-top: 10px; }
             .footer { text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f3f4f6; font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+            @media print {
+              .no-print { display: none; }
+            }
           </style>
         </head>
         <body>
@@ -288,42 +291,53 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               Visit again: www.jamuisupermart.in | Support: +91 78560 53987
             </div>
           </div>
+          <script>
+            window.onload = () => {
+              window.print();
+            };
+          </script>
         </body>
       </html>
-    `);
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    }
   }
 
   const sendWhatsAppInvoice = (order) => {
-    // 1. First generate and open PDF for the admin
+    // 1. Generate the professional PDF first
     generatePDFInvoice(order)
 
-    // 2. Then prepare and open WhatsApp with the text summary
-    const orderId = `#JM-${order.id.toString().slice(-6)}`
-    const date = new Date(order.timestamp).toLocaleDateString()
-    let message = `*JAMUI SUPER MART - INVOICE*\n`
-    message += `--------------------------\n`
-    message += `*Order ID:* ${orderId}\n`
-    message += `*Date:* ${date}\n`
-    message += `*Status:* ${order.status.toUpperCase()}\n`
-    message += `--------------------------\n`
-    
-    order.items.forEach(item => {
-      message += `${item.emoji} *${item.name}*\n`
-      message += `   ₹${item.price} x ${item.quantity} = ₹${item.price * item.quantity}\n`
-    })
-    
-    message += `--------------------------\n`
-    message += `*TOTAL AMOUNT: ₹${order.total}*\n`
-    message += `--------------------------\n`
-    message += `Thank you for shopping with us!\n`
-    message += `Visit again: jamuisupermart.in`
+    // 2. Ask user to proceed to WhatsApp (This ensures the second window.open is not blocked)
+    if (confirm('PDF Invoice generated! Open WhatsApp to share the order summary?')) {
+      const orderId = `#JM-${order.id.toString().slice(-6)}`
+      const date = new Date(order.timestamp).toLocaleDateString()
+      let message = `*JAMUI SUPER MART - INVOICE*\n`
+      message += `--------------------------\n`
+      message += `*Order ID:* ${orderId}\n`
+      message += `*Date:* ${date}\n`
+      message += `*Status:* ${order.status.toUpperCase()}\n`
+      message += `--------------------------\n`
+      
+      order.items.forEach(item => {
+        message += `${item.emoji} *${item.name}*\n`
+        message += `   ₹${item.price} x ${item.quantity} = ₹${item.price * item.quantity}\n`
+      })
+      
+      message += `--------------------------\n`
+      message += `*TOTAL AMOUNT: ₹${order.total}*\n`
+      message += `--------------------------\n`
+      message += `_Please attach the PDF invoice you just saved._\n`
+      message += `--------------------------\n`
+      message += `Thank you for shopping with us!\n`
+      message += `Visit again: jamuisupermart.in`
 
-    const encodedMessage = encodeURIComponent(message)
-    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank')
+      const encodedMessage = encodeURIComponent(message)
+      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank')
+    }
   }
 
   // Enhanced Chart Data Preparation
