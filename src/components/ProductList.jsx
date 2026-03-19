@@ -158,10 +158,22 @@ export default function ProductList({ products, categories, cart, onAdd, onRemov
                 </div>
               )}
 
-              <div className="bg-gray-50 aspect-square rounded-[2rem] flex items-center justify-center text-7xl mb-6 group-hover:scale-110 transition-transform duration-500 relative">
-                {product.emoji}
+              <div className="bg-gray-50 aspect-square rounded-[2rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 relative overflow-hidden">
+                {product.image ? (
+                  <img 
+                    src={product.image} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.parentElement.innerHTML = `<span class="text-7xl">${product.emoji}</span>`;
+                    }}
+                  />
+                ) : (
+                  <span className="text-7xl">{product.emoji}</span>
+                )}
                 {product.stock > 0 && product.stock <= 5 && (
-                  <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm border border-orange-200">
+                  <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm border border-orange-200 z-10">
                     <Info className="w-3 h-3" />
                     ONLY {product.stock} LEFT
                   </div>
