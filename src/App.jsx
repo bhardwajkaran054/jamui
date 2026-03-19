@@ -52,7 +52,7 @@ export default function App() {
     if (token) setIsAdmin(true)
 
     // Secret /admin path detection
-    const isPathAdmin = window.location.pathname.endsWith('/admin')
+    const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
     if (isPathAdmin) {
       if (!passedSecret) {
         setShowSecret(true)
@@ -280,8 +280,7 @@ export default function App() {
     )
   }
 
-  // If we are in admin mode and logged in, show the full dashboard
-  const isPathAdmin = window.location.pathname.endsWith('/admin')
+  const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
   if (isPathAdmin && isAdmin && token) {
     return (
       <>
