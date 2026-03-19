@@ -280,6 +280,37 @@ export default function App() {
     )
   }
 
+  if (!loading && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
+        <div className="bg-red-50 p-6 rounded-[2rem] border border-red-100 max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-black text-gray-900 mb-2">Connection Failed</h2>
+          <p className="text-gray-500 font-medium mb-6">
+            We couldn't load the product data. This might be due to an invalid token or repository path.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white font-black px-6 py-3 rounded-2xl hover:bg-red-700 transition-all"
+            >
+              Retry Connection
+            </button>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('githubToken');
+                window.location.reload();
+              }}
+              className="text-red-600 font-bold text-sm hover:underline"
+            >
+              Reset Token & Login Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
   if (isPathAdmin && isAdmin && token) {
     return (

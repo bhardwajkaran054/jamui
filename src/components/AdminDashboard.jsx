@@ -107,10 +107,26 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank')
   }
 
-  // Chart Data Preparation
+  // Enhanced Chart Data Preparation
   const categoryData = categories.filter(c => c !== 'All').map(cat => {
     const count = products.filter(p => p.category === cat).length
     return { category: cat, count }
+  })
+
+  // Sales Calendar Data (Revenue per day of current month)
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+  
+  const calendarData = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1
+    const dayRevenue = orders
+      .filter(o => {
+        const d = new Date(o.timestamp)
+        return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear && o.status === 'completed'
+      })
+      .reduce((acc, o) => acc + o.total, 0)
+    return { day, revenue: dayRevenue }
   })
 
   const salesByDate = orders.reduce((acc, order) => {
@@ -322,54 +338,63 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                   </h3>
                 </div>
                 <div className="space-y-8">
+                  {/* Sales Calendar View */}
+                  <div className="bg-gray-50 p-6 rounded-3xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Monthly Sales Calendar</p>
+                      <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                        {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
+                        <div key={d} className="text-center text-[8px] font-black text-gray-300">{d}</div>
+                      ))}
+                      {/* Empty cells for padding */}
+                      {[...Array(new Date(currentYear, currentMonth, 1).getDay())].map((_, i) => (
+                        <div key={`p-${i}`} className="aspect-square" />
+                      ))}
+                      {calendarData.map(d => (
+                        <div 
+                          key={d.day} 
+                          className={`aspect-square rounded-lg flex flex-col items-center justify-center relative group cursor-help transition-all ${
+                            d.revenue > 0 ? 'bg-green-500 text-white shadow-sm' : 'bg-white border border-gray-100 text-gray-400'
+                          }`}
+                        >
+                          <span className="text-[10px] font-black">{d.day}</span>
+                          {d.revenue > 0 && (
+                            <div className="absolute bottom-1 w-1 h-1 bg-white rounded-full" />
+                          )}
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 whitespace-nowrap font-black">
+                            Day {d.day}: ₹{d.revenue}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Monthly Sales */}
                   <div className="bg-gray-50 p-6 rounded-3xl">
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">Monthly Breakdown</p>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">6-Month Trend</p>
                     <div className="flex items-end gap-3 h-32">
                       {[...Array(6)].map((_, i) => {
                         const date = new Date()
                         date.setMonth(date.getMonth() - (5 - i))
                         const monthLabel = date.toLocaleString('default', { month: 'short' })
                         const monthTotal = orders
-                          .filter(o => new Date(o.timestamp).getMonth() === date.getMonth())
+                          .filter(o => new Date(o.timestamp).getMonth() === date.getMonth() && o.status === 'completed')
                           .reduce((a, b) => a + b.total, 0)
-                        const maxTotal = Math.max(...orders.map(o => o.total), 1000)
-                        const height = Math.min((monthTotal / maxTotal) * 100, 100)
+                        const maxTotal = Math.max(...orders.filter(o => o.status === 'completed').map(o => o.total), 1000)
+                        const height = Math.min((monthTotal / (maxTotal * 5)) * 100, 100) // Scaled
                         return (
                           <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                            <div className="w-full bg-green-200 rounded-t-xl transition-all group-hover:bg-green-500 relative" style={{ height: `${height}%` }}>
+                            <div className="w-full bg-green-200 rounded-t-xl transition-all group-hover:bg-green-500 relative" style={{ height: `${Math.max(height, 5)}%` }}>
                               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-black">
                                 ₹{monthTotal}
                               </div>
                             </div>
                             <span className="text-[10px] font-black text-gray-400 uppercase">{monthLabel}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Day-wise Sales */}
-                  <div className="bg-gray-50 p-6 rounded-3xl">
-                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">Last 7 Days</p>
-                    <div className="flex items-end gap-3 h-32">
-                      {[...Array(7)].map((_, i) => {
-                        const date = new Date()
-                        date.setDate(date.getDate() - (6 - i))
-                        const dayLabel = date.toLocaleString('default', { weekday: 'short' })
-                        const dayTotal = orders
-                          .filter(o => new Date(o.timestamp).toDateString() === date.toDateString())
-                          .reduce((a, b) => a + b.total, 0)
-                        const maxTotal = Math.max(...orders.map(o => o.total), 500)
-                        const height = Math.min((dayTotal / maxTotal) * 100, 100)
-                        return (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                            <div className="w-full bg-blue-200 rounded-t-xl transition-all group-hover:bg-blue-500 relative" style={{ height: `${height}%` }}>
-                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-black">
-                                ₹{dayTotal}
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase">{dayLabel}</span>
                           </div>
                         )
                       })}
