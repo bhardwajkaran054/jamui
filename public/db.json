@@ -143,6 +143,15 @@
       "emoji": "🫘",
       "stock": 9,
       "id": 17
+    },
+    {
+      "name": "Allu",
+      "price": 10,
+      "unit": "KG",
+      "category": "Veg",
+      "emoji": "🥔",
+      "stock": 90,
+      "id": 18
     }
   ],
   "categories": [
