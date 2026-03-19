@@ -6,8 +6,10 @@
       "price": 830,
       "unit": "26kg",
       "category": "Rice",
-      "emoji": "🌾",
-      "stock": 10
+      "emoji": "Kasturi Usna 26kg",
+      "stock": 10,
+      "useImage": false,
+      "image": ""
     },
     {
       "id": 2,
