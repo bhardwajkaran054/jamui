@@ -267,10 +267,6 @@
   ],
   "deliveryZones": [
     {
-      "name": "Local (within 2km)",
-      "fee": 20
-    },
-    {
       "name": "Standard (2-5km)",
       "fee": 50
     },
