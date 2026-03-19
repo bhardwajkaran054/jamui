@@ -41,7 +41,21 @@ export default function Cart({ cart, products, onAdd, onRemove, onClose, onOrder
           ) : (
             cartItems.map(p => (
               <div key={p.id} className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 group">
-                <span className="text-3xl bg-gray-50 w-14 h-14 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform">{p.emoji}</span>
+                <div className="bg-gray-50 w-14 h-14 flex items-center justify-center rounded-xl group-hover:scale-110 transition-transform overflow-hidden">
+                  {p.image ? (
+                    <img 
+                      src={p.image} 
+                      alt={p.name} 
+                      className="w-full h-full object-cover rounded-xl"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/100?text=' + encodeURIComponent(p.emoji);
+                      }}
+                    />
+                  ) : (
+                    <span className="text-3xl">{p.emoji}</span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-800 truncate">{p.name}</p>
                   <p className="text-green-700 font-black">₹{p.price} <span className="text-xs text-gray-400 font-normal ml-1">x {cart[p.id]}</span></p>

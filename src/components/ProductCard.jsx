@@ -22,8 +22,20 @@ export default function ProductCard({ product, quantity, onAdd, onRemove, isAdmi
       
       <div className="p-6 flex-1">
         <div className="flex items-start justify-between mb-6">
-          <div className="bg-gray-50 w-20 h-20 flex items-center justify-center rounded-[1.5rem] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner">
-            <span className="text-4xl">{product.emoji}</span>
+          <div className="bg-gray-50 w-20 h-20 flex items-center justify-center rounded-[1.5rem] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
+            {product.image ? (
+              <img 
+                src={product.image} 
+                alt={product.name} 
+                className="w-full h-full object-cover rounded-[1.5rem]"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/150?text=' + encodeURIComponent(product.emoji);
+                }}
+              />
+            ) : (
+              <span className="text-4xl">{product.emoji}</span>
+            )}
           </div>
           <span className="text-[10px] bg-green-50 text-green-700 font-black px-3 py-1.5 rounded-xl uppercase tracking-widest flex items-center gap-1 border border-green-100">
             <Tag className="w-2.5 h-2.5" />

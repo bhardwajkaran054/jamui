@@ -8,6 +8,8 @@ export default function ProductEditModal({ product, categories, onSave, onClose 
     unit: '',
     category: '',
     emoji: '🫘',
+    image: '',
+    useImage: false,
     stock: 0
   })
 
@@ -16,7 +18,8 @@ export default function ProductEditModal({ product, categories, onSave, onClose 
       setFormData({
         ...product,
         price: product.price.toString(),
-        stock: product.stock || 0
+        stock: product.stock || 0,
+        useImage: !!product.image
       })
     }
   }, [product])
@@ -26,7 +29,10 @@ export default function ProductEditModal({ product, categories, onSave, onClose 
     onSave({
       ...formData,
       price: parseFloat(formData.price),
-      stock: parseInt(formData.stock)
+      stock: parseInt(formData.stock),
+      // If using image, keep image and clear emoji? Or just keep both.
+      // Usually better to have both as fallback.
+      image: formData.useImage ? formData.image : ''
     })
   }
 
@@ -112,16 +118,57 @@ export default function ProductEditModal({ product, categories, onSave, onClose 
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <Smile className="w-3 h-3" /> Icon
+                  Media Type
                 </label>
-                <input
-                  type="text"
-                  value={formData.emoji}
-                  onChange={e => setFormData({ ...formData, emoji: e.target.value })}
-                  className="w-full border border-gray-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all bg-gray-50/50 text-center text-2xl"
-                  required
-                />
+                <div className="flex bg-gray-100 p-1 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, useImage: false })}
+                    className={`flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all ${!formData.useImage ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    Icon
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, useImage: true })}
+                    className={`flex-1 py-3 text-xs font-black uppercase rounded-xl transition-all ${formData.useImage ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    Photo
+                  </button>
+                </div>
               </div>
+            </div>
+
+            <div className="animate-in slide-in-from-top-2 duration-200">
+              {formData.useImage ? (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                    🖼️ Photo URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.image}
+                    onChange={e => setFormData({ ...formData, image: e.target.value })}
+                    className="w-full border border-gray-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-blue-50/10 font-medium"
+                    placeholder="https://example.com/photo.jpg"
+                    required={formData.useImage}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-orange-600 uppercase tracking-widest flex items-center gap-2">
+                    <Smile className="w-3 h-3" /> Icon Emoji
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.emoji}
+                    onChange={e => setFormData({ ...formData, emoji: e.target.value })}
+                    className="w-full border border-gray-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all bg-orange-50/10 text-center text-3xl"
+                    placeholder="🫘"
+                    required={!formData.useImage}
+                  />
+                </div>
+              )}
             </div>
 
             <div>

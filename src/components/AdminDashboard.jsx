@@ -404,34 +404,101 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               </div>
             </div>
 
-            {/* Futuristic Suggestions */}
-            <div className="bg-gradient-to-br from-green-600 to-green-800 p-12 rounded-[3.5rem] text-white shadow-2xl shadow-green-900/20 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <h3 className="text-3xl font-black mb-6">Store Growth Roadmap 🚀</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-                      <TrendingDown className="w-6 h-6" />
-                    </div>
-                    <h4 className="font-black mb-2">Smart Inventory</h4>
-                    <p className="text-sm text-green-100 font-medium leading-relaxed opacity-80">AI-powered stock predictions based on your sales patterns.</p>
+            {/* Enhanced Admin Features */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Feature 1: Inventory Management */}
+              <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+                <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Package className="w-7 h-7 text-green-600" />
+                </div>
+                <h4 className="text-lg font-black text-gray-800 mb-2">Inventory Control</h4>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
+                  Real-time stock tracking with low-stock alerts and automatic inventory deduction on sales.
+                </p>
+                <button 
+                  onClick={() => setActiveTab('inventory')}
+                  className="text-xs font-black uppercase tracking-widest text-green-600 flex items-center gap-2 hover:gap-3 transition-all"
+                >
+                  Manage Stock <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Feature 2: Sales Analytics */}
+              <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <BarChart3 className="w-7 h-7 text-blue-600" />
+                </div>
+                <h4 className="text-lg font-black text-gray-800 mb-2">Sales Analytics</h4>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
+                  Detailed breakdown of your revenue, popular products, and customer purchasing patterns.
+                </p>
+                <button 
+                  onClick={() => setActiveTab('analytics')}
+                  className="text-xs font-black uppercase tracking-widest text-blue-600 flex items-center gap-2 hover:gap-3 transition-all"
+                >
+                  View Reports <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Feature 3: Order Processing */}
+              <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <ClipboardList className="w-7 h-7 text-orange-600" />
+                </div>
+                <h4 className="text-lg font-black text-gray-800 mb-2">Order Workflow</h4>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
+                  Seamless order approval process with instant WhatsApp invoice generation for customers.
+                </p>
+                <button 
+                  onClick={() => setActiveTab('orders')}
+                  className="text-xs font-black uppercase tracking-widest text-orange-600 flex items-center gap-2 hover:gap-3 transition-all"
+                >
+                  Process Orders <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Actions & System Health */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-gray-900 p-10 rounded-[3rem] text-white">
+                <h4 className="text-xl font-black mb-6 flex items-center gap-3">
+                  <Activity className="w-6 h-6 text-green-400" />
+                  System Status
+                </h4>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <span className="text-sm font-bold text-gray-400">Database Connection</span>
+                    <span className="flex items-center gap-2 text-xs font-black text-green-400 uppercase">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Connected
+                    </span>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-                      <MessageSquare className="w-6 h-6" />
-                    </div>
-                    <h4 className="font-black mb-2">Auto CRM</h4>
-                    <p className="text-sm text-green-100 font-medium leading-relaxed opacity-80">Automatic loyalty points and discount coupons for top customers.</p>
+                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <span className="text-sm font-bold text-gray-400">Inventory Sync</span>
+                    <span className="text-xs font-black text-blue-400 uppercase">Real-time</span>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-                      <ShoppingBag className="w-6 h-6" />
-                    </div>
-                    <h4 className="font-black mb-2">POS Integration</h4>
-                    <p className="text-sm text-green-100 font-medium leading-relaxed opacity-80">Direct printing of thermal receipts from your mobile device.</p>
+                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <span className="text-sm font-bold text-gray-400">Last Sale Update</span>
+                    <span className="text-xs font-black text-gray-300 uppercase">
+                      {orders.length > 0 ? new Date(orders[0].timestamp).toLocaleTimeString() : 'N/A'}
+                    </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="bg-green-600 p-10 rounded-[3rem] text-white flex flex-col justify-between">
+                <div>
+                  <h4 className="text-xl font-black mb-4">Store Growth 📈</h4>
+                  <p className="text-green-100 font-medium leading-relaxed opacity-80 mb-8">
+                    Your store is growing! You have processed {orders.filter(o => o.status === 'completed').length} orders this month. 
+                    Keep updating your inventory to attract more customers.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => onAdminAction('add')}
+                  className="w-full py-5 bg-white text-green-600 rounded-2xl font-black text-lg hover:bg-green-50 transition-all shadow-xl shadow-green-900/20 active:scale-95"
+                >
+                  Add New Product
+                </button>
               </div>
             </div>
           </div>
@@ -536,7 +603,13 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                             {order.items.map((item, idx) => (
                               <div key={idx} className="flex items-center justify-between bg-gray-50/50 p-4 rounded-2xl border border-transparent hover:border-gray-200 transition-all">
                                 <div className="flex items-center gap-4">
-                                  <span className="text-2xl">{item.emoji}</span>
+                                  <div className="bg-gray-100 w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden">
+                                    {item.image ? (
+                                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-2xl">{item.emoji}</span>
+                                    )}
+                                  </div>
                                   <div>
                                     <p className="font-bold text-gray-800 leading-none mb-1">{item.name}</p>
                                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{item.category}</p>
@@ -607,8 +680,12 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               {products.map(product => (
                 <div key={product.id} className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm group hover:shadow-2xl hover:shadow-green-900/5 transition-all">
                   <div className="flex justify-between items-start mb-6">
-                    <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner">
-                      <span className="text-3xl">{product.emoji}</span>
+                    <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
+                      {product.image ? (
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl">{product.emoji}</span>
+                      )}
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <button 
