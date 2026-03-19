@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Package, ClipboardList, LogOut, Trash2, Edit3, Plus, Clock, TrendingDown, AlertTriangle, BarChart3, PieChart, Activity } from 'lucide-react'
+import { Package, ClipboardList, LogOut, Trash2, Edit3, Plus, Clock, TrendingDown, AlertTriangle, BarChart3, PieChart, Activity, ShoppingBag } from 'lucide-react'
 import { apiFetch } from '../api'
 import {
   Chart as ChartJS,
@@ -153,6 +153,14 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
           >
             <Package className="w-5 h-5" />
             Inventory
+          </button>
+
+          <button
+            onClick={() => window.location.href = '/'}
+            className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-blue-500 hover:bg-blue-50 transition-all border border-blue-50 mt-4"
+          >
+            <ShoppingBag className="w-5 h-5" />
+            View Store
           </button>
         </nav>
 

@@ -1,4 +1,4 @@
-import { LogOut, ShieldCheck } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard } from 'lucide-react'
 
 export default function Footer({ isAdmin, onLogout }) {
   return (
@@ -17,13 +17,22 @@ export default function Footer({ isAdmin, onLogout }) {
                     <ShieldCheck className="w-4 h-4" />
                     Admin Mode Active
                   </div>
-                  <button 
-                    onClick={onLogout}
-                    className="flex items-center gap-2 text-xs text-red-400 hover:text-red-300 transition-colors bg-red-500/10 px-3 py-2 rounded-lg w-fit"
-                  >
-                    <LogOut className="w-3 h-3" />
-                    Logout Session
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => window.location.href = '/admin'}
+                      className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-3 py-2 rounded-lg w-fit"
+                    >
+                      <LayoutDashboard className="w-3 h-3" />
+                      Open Dashboard
+                    </button>
+                    <button 
+                      onClick={onLogout}
+                      className="flex items-center gap-2 text-xs text-red-400 hover:text-red-300 transition-colors bg-red-500/10 px-3 py-2 rounded-lg w-fit"
+                    >
+                      <LogOut className="w-3 h-3" />
+                      Logout Session
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

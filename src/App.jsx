@@ -38,12 +38,17 @@ export default function App() {
     if (token) setIsAdmin(true)
 
     // Secret /admin path detection
-    if (window.location.pathname === '/admin') {
+    const isPathAdmin = window.location.pathname.endsWith('/admin')
+    if (isPathAdmin) {
       if (!passedSecret) {
         setShowSecret(true)
       } else if (!token) {
         setShowLogin(true)
       }
+    } else {
+      // Hide admin overlays if we are not on the admin path
+      setShowSecret(false)
+      setShowLogin(false)
     }
   }, [token, passedSecret])
 
@@ -224,7 +229,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header cartCount={cartCount} onCartClick={() => setCartOpen(true)} />
+      <Header cartCount={cartCount} onCartClick={() => setCartOpen(true)} isAdmin={isAdmin} />
       <Hero />
       <Steps />
       <ProductList 
@@ -233,7 +238,8 @@ export default function App() {
         cart={cart} 
         onAdd={addToCart} 
         onRemove={removeFromCart}
-        isAdmin={false} // Hidden from public view
+        isAdmin={isAdmin} // Pass isAdmin to show edit/delete buttons if logged in
+        onAdminAction={handleAdminAction}
         loading={loading}
       />
       <Footer 
