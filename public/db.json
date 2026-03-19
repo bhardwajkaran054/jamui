@@ -194,5 +194,58 @@
       "timestamp": "2026-03-19T12:17:01.250Z",
       "status": "completed"
     }
+  ],
+  "promoCodes": [
+    {
+      "code": "WELCOME10",
+      "discount": 10,
+      "minOrder": 100,
+      "active": true
+    },
+    {
+      "code": "HOLI20",
+      "discount": 20,
+      "minOrder": 500,
+      "active": true
+    }
+  ],
+  "notices": {
+    "text": "🚚 Free delivery on orders above ₹500! Happy shopping!",
+    "active": true
+  },
+  "stockLogs": [
+    {
+      "id": 1,
+      "timestamp": "2026-03-19T10:00:00.000Z",
+      "productId": 1,
+      "productName": "Kasturi Rice 26 kg",
+      "oldStock": 5,
+      "newStock": 10,
+      "change": 5,
+      "reason": "Manual Update by Admin"
+    }
+  ],
+  "deliveryZones": [
+    {
+      "name": "Local (within 2km)",
+      "fee": 20
+    },
+    {
+      "name": "Standard (2-5km)",
+      "fee": 50
+    },
+    {
+      "name": "Far (above 5km)",
+      "fee": 100
+    }
+  ],
+  "customers": [
+    {
+      "phone": "917856053987",
+      "name": "Ravi Kumar",
+      "totalSpent": 1500,
+      "orderCount": 5,
+      "loyaltyPoints": 150
+    }
   ]
 }

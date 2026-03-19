@@ -64,10 +64,34 @@ export const apiFetch = async (endpoint, options = {}) => {
     const index = db.products.findIndex(p => p.id === product.id);
     
     if (index !== -1) {
+      const oldStock = db.products[index].stock || 0;
+      if (oldStock !== product.stock) {
+        if (!db.stockLogs) db.stockLogs = [];
+        db.stockLogs.unshift({
+          id: Date.now(),
+          productId: product.id,
+          productName: product.name,
+          oldStock,
+          newStock: product.stock,
+          reason: 'Manual Admin Update',
+          timestamp: new Date().toISOString()
+        });
+      }
       db.products[index] = { ...db.products[index], ...product };
     } else {
       const newId = Math.max(0, ...db.products.map(p => p.id)) + 1;
       db.products.push({ ...product, id: newId });
+      
+      if (!db.stockLogs) db.stockLogs = [];
+      db.stockLogs.unshift({
+        id: Date.now(),
+        productId: newId,
+        productName: product.name,
+        oldStock: 0,
+        newStock: product.stock,
+        reason: 'New Product Added',
+        timestamp: new Date().toISOString()
+      });
     }
 
     // Auto-add category if it doesn't exist
@@ -81,17 +105,33 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint.startsWith('/products/') && options.method === 'DELETE') {
     const id = parseInt(endpoint.split('/').pop());
+    const product = db.products.find(p => p.id === id);
+    if (product) {
+      if (!db.stockLogs) db.stockLogs = [];
+      db.stockLogs.unshift({
+        id: Date.now(),
+        productId: id,
+        productName: product.name,
+        oldStock: product.stock || 0,
+        newStock: 0,
+        reason: 'Product Deleted',
+        timestamp: new Date().toISOString()
+      });
+    }
     db.products = db.products.filter(p => p.id !== id);
     await updateDb(db);
     return { success: true };
   }
 
   if (endpoint === '/orders' && options.method === 'POST') {
-    const { items, total } = JSON.parse(options.body);
+    const { items, total, customer, promoCode, deliveryFee } = JSON.parse(options.body);
     const newOrder = {
       id: Date.now(),
       items,
       total,
+      customer, // New: customer info
+      promoCode, // New: promo code used
+      deliveryFee, // New: delivery fee
       timestamp: new Date().toISOString(),
       status: 'pending'
     };
@@ -118,7 +158,19 @@ export const apiFetch = async (endpoint, options = {}) => {
         order.items.forEach(item => {
           const product = db.products.find(p => p.id === item.id);
           if (product) {
-            product.stock = Math.max(0, (product.stock || 0) - item.quantity);
+            const oldStock = product.stock || 0;
+            product.stock = Math.max(0, oldStock - item.quantity);
+            
+            if (!db.stockLogs) db.stockLogs = [];
+            db.stockLogs.unshift({
+              id: Date.now() + Math.random(),
+              productId: product.id,
+              productName: product.name,
+              oldStock,
+              newStock: product.stock,
+              reason: `Order Approved (#JM-${order.id.toString().slice(-6)})`,
+              timestamp: new Date().toISOString()
+            });
           }
         });
       }
@@ -126,6 +178,98 @@ export const apiFetch = async (endpoint, options = {}) => {
       await updateDb(db);
     }
     return { success: true };
+  }
+
+  // New Endpoints for Features
+  if (endpoint === '/promo-codes' && !options.method) {
+    return db.promoCodes || [];
+  }
+
+  if (endpoint === '/promo-codes' && options.method === 'POST') {
+    const code = JSON.parse(options.body);
+    if (!db.promoCodes) db.promoCodes = [];
+    const index = db.promoCodes.findIndex(c => c.code === code.code);
+    if (index !== -1) {
+      db.promoCodes[index] = code;
+    } else {
+      db.promoCodes.push(code);
+    }
+    await updateDb(db);
+    return { success: true };
+  }
+
+  if (endpoint.startsWith('/promo-codes/') && options.method === 'DELETE') {
+    const code = endpoint.split('/').pop();
+    db.promoCodes = (db.promoCodes || []).filter(c => c.code !== code);
+    await updateDb(db);
+    return { success: true };
+  }
+
+  if (endpoint === '/notices' && !options.method) {
+    return db.notices || { text: '', active: false };
+  }
+
+  if (endpoint === '/notices' && options.method === 'POST') {
+    db.notices = JSON.parse(options.body);
+    await updateDb(db);
+    return { success: true };
+  }
+
+  if (endpoint === '/stock-logs' && !options.method) {
+    return db.stockLogs || [];
+  }
+
+  if (endpoint === '/delivery-zones' && !options.method) {
+    return db.deliveryZones || [];
+  }
+
+  if (endpoint === '/delivery-zones' && options.method === 'POST') {
+    const zone = JSON.parse(options.body);
+    if (!db.deliveryZones) db.deliveryZones = [];
+    const index = db.deliveryZones.findIndex(z => z.name === zone.name);
+    if (index !== -1) {
+      db.deliveryZones[index] = zone;
+    } else {
+      db.deliveryZones.push(zone);
+    }
+    await updateDb(db);
+    return { success: true };
+  }
+
+  if (endpoint.startsWith('/delivery-zones/') && options.method === 'DELETE') {
+    const name = decodeURIComponent(endpoint.split('/').pop());
+    db.deliveryZones = (db.deliveryZones || []).filter(z => z.name !== name);
+    await updateDb(db);
+    return { success: true };
+  }
+
+  if (endpoint === '/customers' && !options.method) {
+    // Generate customer list from orders
+    const customers = {};
+    (db.orders || []).forEach(order => {
+      if (order.customer && order.customer.phone) {
+        const phone = order.customer.phone;
+        if (!customers[phone]) {
+          customers[phone] = {
+            name: order.customer.name,
+            phone: phone,
+            totalSpent: 0,
+            orderCount: 0,
+            lastOrder: null,
+            loyaltyPoints: 0
+          };
+        }
+        if (order.status === 'completed') {
+          customers[phone].totalSpent += order.total;
+          customers[phone].loyaltyPoints += Math.floor(order.total / 100);
+        }
+        customers[phone].orderCount += 1;
+        if (!customers[phone].lastOrder || new Date(order.timestamp) > new Date(customers[phone].lastOrder)) {
+          customers[phone].lastOrder = order.timestamp;
+        }
+      }
+    });
+    return Object.values(customers);
   }
 
   if (endpoint.startsWith('/orders/') && options.method === 'DELETE') {

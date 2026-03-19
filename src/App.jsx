@@ -19,6 +19,9 @@ export default function App() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState(['All'])
   const [orders, setOrders] = useState([])
+  const [promoCodes, setPromoCodes] = useState([])
+  const [notice, setNotice] = useState({ text: '', active: false })
+  const [deliveryZones, setDeliveryZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
@@ -49,6 +52,9 @@ export default function App() {
     fetchProducts()
     fetchCategories()
     fetchOrders()
+    fetchPromoCodes()
+    fetchNotice()
+    fetchDeliveryZones()
     if (token) setIsAdmin(true)
 
     // Secret /admin path detection
@@ -101,6 +107,33 @@ export default function App() {
       setOrders(data)
     } catch (err) {
       console.error('[API ERROR] Orders fetch failed:', err.message)
+    }
+  }
+
+  const fetchPromoCodes = async () => {
+    try {
+      const data = await apiFetch('/promo-codes')
+      setPromoCodes(data)
+    } catch (err) {
+      console.error('[API ERROR] Promo codes fetch failed:', err.message)
+    }
+  }
+
+  const fetchNotice = async () => {
+    try {
+      const data = await apiFetch('/notices')
+      setNotice(data)
+    } catch (err) {
+      console.error('[API ERROR] Notices fetch failed:', err.message)
+    }
+  }
+
+  const fetchDeliveryZones = async () => {
+    try {
+      const data = await apiFetch('/delivery-zones')
+      setDeliveryZones(data)
+    } catch (err) {
+      console.error('[API ERROR] Delivery zones fetch failed:', err.message)
     }
   }
 
@@ -349,7 +382,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header cartCount={cartCount} onCartClick={() => setCartOpen(true)} isAdmin={isAdmin} />
+      <Header cartCount={cartCount} onCartClick={() => setCartOpen(true)} isAdmin={isAdmin} notice={notice} />
       <Hero />
       <Steps />
       <ProductList 
@@ -371,6 +404,8 @@ export default function App() {
         <Cart
           cart={cart}
           products={products}
+          promoCodes={promoCodes}
+          deliveryZones={deliveryZones}
           onAdd={addToCart}
           onRemove={removeFromCart}
           onClose={() => setCartOpen(false)}

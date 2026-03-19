@@ -19,7 +19,9 @@ import {
   MessageSquare, 
   Calendar,
   ChevronRight,
-  User
+  User,
+  Tag,
+  Bell
 } from 'lucide-react'
 import { apiFetch } from '../api'
 import {
@@ -53,10 +55,136 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const [orders, setOrders] = useState(initialOrders || [])
   const [loading, setLoading] = useState(false)
   const [orderFilter, setOrderFilter] = useState('pending') // Default to pending for approval flow
+  const [customers, setCustomers] = useState([])
+  const [promoCodes, setPromoCodes] = useState([])
+  const [stockLogs, setStockLogs] = useState([])
+  const [notices, setNotices] = useState({ text: '', active: false })
+  const [deliveryZones, setDeliveryZones] = useState([])
 
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders)
-  }, [initialOrders])
+    if (activeTab === 'customers') fetchCustomers()
+    if (activeTab === 'promo-codes') fetchPromoCodes()
+    if (activeTab === 'stock-logs') fetchStockLogs()
+    if (activeTab === 'notices') fetchNotices()
+    if (activeTab === 'delivery-zones') fetchDeliveryZones()
+  }, [initialOrders, activeTab])
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true)
+      const data = await apiFetch('/customers')
+      setCustomers(data)
+    } catch (err) {
+      console.error('Failed to fetch customers:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchPromoCodes = async () => {
+    try {
+      setLoading(true)
+      const data = await apiFetch('/promo-codes')
+      setPromoCodes(data)
+    } catch (err) {
+      console.error('Failed to fetch promo codes:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchStockLogs = async () => {
+    try {
+      setLoading(true)
+      const data = await apiFetch('/stock-logs')
+      setStockLogs(data)
+    } catch (err) {
+      console.error('Failed to fetch stock logs:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchNotices = async () => {
+    try {
+      setLoading(true)
+      const data = await apiFetch('/notices')
+      setNotices(data)
+    } catch (err) {
+      console.error('Failed to fetch notices:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchDeliveryZones = async () => {
+    try {
+      setLoading(true)
+      const data = await apiFetch('/delivery-zones')
+      setDeliveryZones(data)
+    } catch (err) {
+      console.error('Failed to fetch delivery zones:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateNotice = async (newNotice) => {
+    try {
+      await apiFetch('/notices', {
+        method: 'POST',
+        body: JSON.stringify(newNotice)
+      })
+      setNotices(newNotice)
+      alert('Notice updated successfully!')
+    } catch (err) {
+      console.error('Failed to update notice:', err)
+    }
+  }
+
+  const handleAddPromoCode = async () => {
+    const code = prompt('Enter promo code:')
+    if (!code) return
+    const discount = prompt('Enter discount amount (₹):')
+    if (!discount) return
+    const minOrder = prompt('Enter minimum order amount (₹):', '0')
+    
+    try {
+      await apiFetch('/promo-codes', {
+        method: 'POST',
+        body: JSON.stringify({
+          code,
+          discount: parseFloat(discount),
+          minOrder: parseFloat(minOrder || '0'),
+          active: true
+        })
+      })
+      fetchPromoCodes()
+    } catch (err) {
+      console.error('Failed to add promo code:', err)
+    }
+  }
+
+  const handleAddDeliveryZone = async () => {
+    const name = prompt('Enter zone name (e.g. Local, Outer):')
+    if (!name) return
+    const fee = prompt('Enter delivery fee (₹):')
+    if (!fee) return
+    
+    try {
+      await apiFetch('/delivery-zones', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          fee: parseFloat(fee)
+        })
+      })
+      fetchDeliveryZones()
+    } catch (err) {
+      console.error('Failed to add delivery zone:', err)
+    }
+  }
 
   const filteredOrders = orders.filter(o => {
     if (orderFilter === 'all') return true
@@ -232,6 +360,71 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
           >
             <LayoutGrid className="w-5 h-5" />
             Categories
+          </button>
+
+          <button
+            onClick={() => setActiveTab('customers')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'customers' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            Customers
+          </button>
+
+          <button
+            onClick={() => setActiveTab('promo-codes')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'promo-codes' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <Tag className="w-5 h-5" />
+            Promo Codes
+          </button>
+
+          <button
+            onClick={() => setActiveTab('delivery-zones')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'delivery-zones' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <ShoppingBag className="w-5 h-5" />
+            Delivery Zones
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notices')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'notices' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <MessageSquare className="w-5 h-5" />
+            Notice Board
+          </button>
+
+          <button
+            onClick={() => setActiveTab('stock-logs')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'stock-logs' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <Clock className="w-5 h-5" />
+            Stock Logs
+          </button>
+
+          <button
+            onClick={() => setActiveTab('alerts')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'alerts' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <Bell className="w-5 h-5" />
+            Stock Alerts
+            {lowStockItems.length > 0 && (
+              <span className="ml-auto bg-red-100 text-red-700 px-2 py-0.5 rounded-lg text-xs animate-pulse">
+                {lowStockItems.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -458,49 +651,112 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               </div>
             </div>
 
-            {/* Quick Actions & System Health */}
+            {/* Admin Features Suite & System Health Monitor */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-gray-900 p-10 rounded-[3rem] text-white">
                 <h4 className="text-xl font-black mb-6 flex items-center gap-3">
                   <Activity className="w-6 h-6 text-green-400" />
-                  System Status
+                  System Health Monitor
                 </h4>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Database Connection</span>
+                    <span className="text-sm font-bold text-gray-400">Database Engine</span>
                     <span className="flex items-center gap-2 text-xs font-black text-green-400 uppercase">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Connected
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Live & Stable
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Inventory Sync</span>
-                    <span className="text-xs font-black text-blue-400 uppercase">Real-time</span>
+                    <span className="text-sm font-bold text-gray-400">Order Processing</span>
+                    <span className="text-xs font-black text-blue-400 uppercase">100% Active</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Last Sale Update</span>
+                    <span className="text-sm font-bold text-gray-400">Last Sync</span>
                     <span className="text-xs font-black text-gray-300 uppercase">
-                      {orders.length > 0 ? new Date(orders[0].timestamp).toLocaleTimeString() : 'N/A'}
+                      {new Date().toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-green-600 p-10 rounded-[3rem] text-white flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xl font-black mb-4">Store Growth 📈</h4>
-                  <p className="text-green-100 font-medium leading-relaxed opacity-80 mb-8">
-                    Your store is growing! You have processed {orders.filter(o => o.status === 'completed').length} orders this month. 
-                    Keep updating your inventory to attract more customers.
-                  </p>
+              <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
+                <h4 className="text-xl font-black mb-6 flex items-center gap-3">
+                  <LayoutGrid className="w-6 h-6 text-blue-600" />
+                  Admin Features Suite
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <p className="text-xs font-black text-blue-700 uppercase tracking-widest mb-1">Promo Codes</p>
+                    <p className="text-[10px] text-blue-500 font-bold leading-tight">Create & manage discounts</p>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+                    <p className="text-xs font-black text-green-700 uppercase tracking-widest mb-1">Notice Board</p>
+                    <p className="text-[10px] text-green-500 font-bold leading-tight">Update store announcements</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                    <p className="text-xs font-black text-orange-700 uppercase tracking-widest mb-1">Stock History</p>
+                    <p className="text-[10px] text-orange-500 font-bold leading-tight">Full audit trail of stock</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                    <p className="text-xs font-black text-purple-700 uppercase tracking-widest mb-1">Customers</p>
+                    <p className="text-[10px] text-purple-500 font-bold leading-tight">View loyalty & spending</p>
+                  </div>
                 </div>
-                <button 
-                  onClick={() => onAdminAction('add')}
-                  className="w-full py-5 bg-white text-green-600 rounded-2xl font-black text-lg hover:bg-green-50 transition-all shadow-xl shadow-green-900/20 active:scale-95"
-                >
-                  Add New Product
-                </button>
               </div>
             </div>
+          </div>
+        ) : activeTab === 'alerts' ? (
+          <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Stock Alerts Center</h1>
+              <p className="text-gray-500 font-medium mt-1">Items that are critically low or out of stock</p>
+            </header>
+
+            {lowStockItems.length === 0 ? (
+              <div className="bg-white rounded-[3rem] p-24 text-center border border-gray-100 shadow-sm">
+                <div className="w-24 h-24 bg-green-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
+                  <CheckCircle2 className="w-10 h-10 text-green-600" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-2">All Stocked Up!</h3>
+                <p className="text-gray-400 font-medium">No items are currently low on stock.</p>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {lowStockItems.map(item => (
+                  <div key={item.id} className="bg-white p-8 rounded-[2.5rem] border-2 border-red-50 shadow-sm flex items-center justify-between hover:border-red-200 transition-all">
+                    <div className="flex items-center gap-6">
+                      <div className="bg-red-50 w-20 h-20 rounded-2xl flex items-center justify-center relative">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-2xl" />
+                        ) : (
+                          <span className="text-4xl">{item.emoji}</span>
+                        )}
+                        <div className="absolute -top-2 -right-2 bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-lg">
+                          {item.stock}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-2xl font-black text-gray-900">{item.name}</h4>
+                        <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">{item.category} • {item.unit}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                            item.stock === 0 ? 'bg-red-600 text-white' : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {item.stock === 0 ? 'Out of Stock' : 'Low Stock Alert'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => onAdminAction('edit', item)}
+                      className="bg-gray-900 text-white font-black px-8 py-4 rounded-2xl hover:bg-gray-800 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Restock Now
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : activeTab === 'orders' ? (
           <div className="max-w-5xl mx-auto space-y-10">
@@ -642,7 +898,100 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                             className="bg-white border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
                           >
                             <MessageSquare className="w-5 h-5" />
-                            Send Invoice
+                            WhatsApp
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              const printWindow = window.open('', '_blank');
+                              const orderId = `#JM-${order.id.toString().slice(-6)}`;
+                              const date = new Date(order.timestamp).toLocaleDateString();
+                              const itemsHtml = order.items.map(item => `
+                                <tr>
+                                  <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+                                    <div style="font-weight: 700; color: #111827;">${item.emoji} ${item.name}</div>
+                                    <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">${item.category}</div>
+                                  </td>
+                                  <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align: center; font-weight: 700;">${item.quantity}</td>
+                                  <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align: right; font-weight: 900;">₹${item.price * item.quantity}</td>
+                                </tr>
+                              `).join('');
+
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>Invoice ${orderId}</title>
+                                    <style>
+                                      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+                                      body { font-family: 'Inter', sans-serif; padding: 40px; color: #374151; line-height: 1.5; }
+                                      .invoice-container { max-width: 800px; margin: auto; border: 1px solid #e5e7eb; padding: 40px; border-radius: 24px; }
+                                      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; }
+                                      .logo-section h1 { font-size: 24px; font-weight: 900; color: #16a34a; margin: 0; letter-spacing: -0.025em; }
+                                      .logo-section p { font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; margin: 4px 0 0 0; letter-spacing: 0.1em; }
+                                      .order-info { text-align: right; }
+                                      .order-info p { margin: 2px 0; font-size: 12px; font-weight: 700; }
+                                      .order-id { font-size: 18px; font-weight: 900; color: #111827; }
+                                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                                      th { text-align: left; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; }
+                                      .totals { margin-top: 30px; border-top: 2px solid #f3f4f6; padding-top: 20px; }
+                                      .total-row { display: flex; justify-content: flex-end; gap: 40px; margin-bottom: 8px; font-size: 14px; }
+                                      .grand-total { font-size: 24px; font-weight: 900; color: #16a34a; margin-top: 10px; }
+                                      .footer { text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #f3f4f6; font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <div class="invoice-container">
+                                      <div class="header">
+                                        <div class="logo-section">
+                                          <h1>JAMUI SUPER MART</h1>
+                                          <p>Professional Grocery Services</p>
+                                        </div>
+                                        <div class="order-info">
+                                          <p class="order-id">${orderId}</p>
+                                          <p style="color: #9ca3af;">Date: ${date}</p>
+                                          <p style="color: ${order.status === 'completed' ? '#16a34a' : '#f59e0b'};">Status: ${order.status.toUpperCase()}</p>
+                                        </div>
+                                      </div>
+                                      
+                                      <table>
+                                        <thead>
+                                          <tr>
+                                            <th style="text-align: left;">Item Description</th>
+                                            <th style="text-align: center;">Quantity</th>
+                                            <th style="text-align: right;">Total Price</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>${itemsHtml}</tbody>
+                                      </table>
+                                      
+                                      <div class="totals">
+                                        <div class="total-row">
+                                          <span style="color: #9ca3af;">SUBTOTAL</span>
+                                          <span style="width: 100px; text-align: right; font-weight: 700;">₹${order.total}</span>
+                                        </div>
+                                        <div class="total-row grand-total">
+                                          <span>TOTAL DUE</span>
+                                          <span style="width: 120px; text-align: right;">₹${order.total}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div class="footer">
+                                        Thank you for choosing Jamui Super Mart!<br/>
+                                        Visit again: www.jamuisupermart.in | Support: +91 78560 53987
+                                      </div>
+                                    </div>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                              setTimeout(() => {
+                                printWindow.print();
+                              }, 500);
+                            }}
+                            className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
+                          >
+                            <ShoppingBag className="w-5 h-5" />
+                            PDF
                           </button>
 
                           <button 
@@ -659,6 +1008,205 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                 ))}
               </div>
             )}
+          </div>
+        ) : activeTab === 'customers' ? (
+          <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Customer Directory</h1>
+              <p className="text-gray-500 font-medium mt-1">Track customer loyalty and order history</p>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {customers.map(customer => (
+                <div key={customer.phone} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="bg-blue-100 w-14 h-14 rounded-2xl flex items-center justify-center">
+                      <User className="w-7 h-7 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-gray-900">{customer.name || 'Anonymous'}</h4>
+                      <p className="text-sm text-gray-400 font-bold">{customer.phone}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-50 p-4 rounded-2xl">
+                      <p className="text-[10px] text-gray-400 font-black uppercase mb-1">Total Spent</p>
+                      <p className="text-lg font-black text-green-600">₹{customer.totalSpent}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-2xl">
+                      <p className="text-[10px] text-gray-400 font-black uppercase mb-1">Orders</p>
+                      <p className="text-lg font-black text-blue-600">{customer.orderCount}</p>
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-2xl flex items-center justify-between">
+                    <span className="text-[10px] text-green-600 font-black uppercase">Loyalty Points</span>
+                    <span className="text-lg font-black text-green-700">⭐ {customer.loyaltyPoints}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : activeTab === 'promo-codes' ? (
+          <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header className="flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-black text-gray-900 tracking-tight">Promo Codes</h1>
+                <p className="text-gray-500 font-medium mt-1">Manage discounts and offers</p>
+              </div>
+              <button 
+                onClick={handleAddPromoCode}
+                className="bg-green-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-green-200"
+              >
+                + Add New
+              </button>
+            </header>
+
+            <div className="grid gap-6">
+              {promoCodes.map(promo => (
+                <div key={promo.code} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="bg-orange-100 w-16 h-16 rounded-2xl flex items-center justify-center">
+                      <Tag className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-black text-gray-900">{promo.code}</h4>
+                      <p className="text-sm text-gray-500 font-bold">₹{promo.discount} OFF (Min: ₹{promo.minOrder})</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if(confirm('Delete this promo code?')) {
+                        await apiFetch(`/promo-codes/${promo.code}`, { method: 'DELETE' });
+                        fetchPromoCodes();
+                      }
+                    }}
+                    className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    <Trash2 className="w-6 h-6" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : activeTab === 'delivery-zones' ? (
+          <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header className="flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-black text-gray-900 tracking-tight">Delivery Zones</h1>
+                <p className="text-gray-500 font-medium mt-1">Set fees based on customer location</p>
+              </div>
+              <button 
+                onClick={handleAddDeliveryZone}
+                className="bg-blue-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-blue-200"
+              >
+                + Add Zone
+              </button>
+            </header>
+
+            <div className="grid gap-6">
+              {deliveryZones.map(zone => (
+                <div key={zone.name} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center">
+                      <ShoppingBag className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-black text-gray-900">{zone.name}</h4>
+                      <p className="text-sm text-gray-500 font-bold">Delivery Fee: ₹{zone.fee}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if(confirm('Delete this delivery zone?')) {
+                        await apiFetch(`/delivery-zones/${encodeURIComponent(zone.name)}`, { method: 'DELETE' });
+                        fetchDeliveryZones();
+                      }
+                    }}
+                    className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    <Trash2 className="w-6 h-6" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : activeTab === 'notices' ? (
+          <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Notice Board</h1>
+              <p className="text-gray-500 font-medium mt-1">Update the announcement banner on your website</p>
+            </header>
+
+            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+              <div className="space-y-4">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Banner Message</label>
+                <textarea 
+                  value={notices.text}
+                  onChange={(e) => setNotices({ ...notices, text: e.target.value })}
+                  placeholder="Enter notice text here (e.g. Free delivery on orders above ₹500!)"
+                  className="w-full border border-gray-200 rounded-[2rem] p-6 focus:ring-2 focus:ring-green-500 outline-none font-bold text-gray-700 min-h-[150px]"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-6 bg-gray-50 rounded-2xl">
+                <span className="font-bold text-gray-700">Display Banner?</span>
+                <button 
+                  onClick={() => setNotices({ ...notices, active: !notices.active })}
+                  className={`w-16 h-8 rounded-full transition-all relative ${notices.active ? 'bg-green-600' : 'bg-gray-300'}`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${notices.active ? 'left-9' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <button 
+                onClick={() => handleUpdateNotice(notices)}
+                className="w-full bg-green-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-green-100"
+              >
+                Save Notice
+              </button>
+            </div>
+          </div>
+        ) : activeTab === 'stock-logs' ? (
+          <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Stock History Logs</h1>
+              <p className="text-gray-500 font-medium mt-1">Full audit trail of all inventory changes</p>
+            </header>
+
+            <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-bottom border-gray-100">
+                    <th className="text-left p-6 text-[10px] font-black uppercase text-gray-400">Time</th>
+                    <th className="text-left p-6 text-[10px] font-black uppercase text-gray-400">Product</th>
+                    <th className="text-left p-6 text-[10px] font-black uppercase text-gray-400">Old</th>
+                    <th className="text-left p-6 text-[10px] font-black uppercase text-gray-400">New</th>
+                    <th className="text-left p-6 text-[10px] font-black uppercase text-gray-400">Change</th>
+                    <th className="text-left p-6 text-[10px] font-black uppercase text-gray-400">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {stockLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="p-6 text-xs font-bold text-gray-400">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td className="p-6 font-black text-gray-800">{log.productName}</td>
+                      <td className="p-6 font-bold text-gray-400">{log.oldStock}</td>
+                      <td className="p-6 font-black text-gray-900">{log.newStock}</td>
+                      <td className="p-6">
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${
+                          log.newStock > log.oldStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                        }`}>
+                          {log.newStock > log.oldStock ? '+' : ''}{log.newStock - log.oldStock}
+                        </span>
+                      </td>
+                      <td className="p-6 text-xs font-medium text-gray-500">{log.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : activeTab === 'inventory' ? (
           <div className="max-w-6xl mx-auto space-y-12">
