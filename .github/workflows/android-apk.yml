@@ -43,8 +43,23 @@ jobs:
           chmod +x android/gradlew
           cd android && ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Upload APK
+      - name: Prepare APK Folder
+        run: |
+          mkdir -p apk-release
+          cp android/app/build/outputs/apk/debug/app-debug.apk apk-release/jamui-supermart.apk
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: apk-release/jamui-supermart.apk
+
+      - name: Update Direct Download APK [skip ci]
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apk-release
+          publish_branch: android-build
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: "Update Direct Download APK [skip ci]"
