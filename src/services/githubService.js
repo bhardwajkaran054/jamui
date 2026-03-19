@@ -9,7 +9,13 @@ const REPO_NAME = 'jamui';
 const DB_PATH = 'public/db.json';
 
 // Helper to get token from storage or environment
-const getToken = () => localStorage.getItem('githubToken') || import.meta.env.VITE_GITHUB_TOKEN;
+const getToken = () => {
+  try {
+    return localStorage.getItem('githubToken') || import.meta.env.VITE_GITHUB_TOKEN;
+  } catch (e) {
+    return import.meta.env.VITE_GITHUB_TOKEN;
+  }
+};
 
 /**
  * Fetches the current database content from GitHub

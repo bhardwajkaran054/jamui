@@ -22,10 +22,22 @@ export default function App() {
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [token, setToken] = useState(localStorage.getItem('githubToken'))
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('githubToken')
+    } catch (e) {
+      return null
+    }
+  })
   const [showLogin, setShowLogin] = useState(false)
   const [showSecret, setShowSecret] = useState(false)
-  const [passedSecret, setPassedSecret] = useState(sessionStorage.getItem('passedSecret') === 'true')
+  const [passedSecret, setPassedSecret] = useState(() => {
+    try {
+      return sessionStorage.getItem('passedSecret') === 'true'
+    } catch (e) {
+      return false
+    }
+  })
   const [toast, setToast] = useState(null)
   
   // Admin Editing States
@@ -216,6 +228,21 @@ export default function App() {
   }
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0)
+
+  // Show loading screen if we have no products yet
+  if (loading && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center px-4">
+          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+          <div>
+            <h2 className="text-2xl font-black text-gray-900">Jamui Super Mart</h2>
+            <p className="text-gray-500 font-bold animate-pulse mt-1">Connecting to repository...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // If we are in admin mode and logged in, show the full dashboard
   if (window.location.pathname === '/admin' && isAdmin && token) {
