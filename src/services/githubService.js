@@ -20,7 +20,7 @@ export const fetchDb = async () => {
   // 1. Try fetching via API (with token) for real-time consistency
   if (token) {
     try {
-      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}`, {
+      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}?t=${Date.now()}`, {
         headers: { 'Authorization': `token ${token}` }
       });
       if (response.ok) {
@@ -41,7 +41,7 @@ export const fetchDb = async () => {
 
   // 2. Try fetching via API (without token) - Better consistency than Raw, but rate limited
   try {
-    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}`);
+    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}?t=${Date.now()}`);
     if (response.ok) {
       const fileData = await response.json();
       const binaryString = atob(fileData.content.replace(/\n/g, ''));

@@ -179,12 +179,30 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
       <main className="flex-1 p-6 md:p-12 overflow-y-auto max-h-screen">
         {activeTab === 'analytics' ? (
           <div className="max-w-6xl mx-auto space-y-12">
-            <header>
-              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Business Overview</h1>
-              <p className="text-gray-500 font-medium mt-1">Real-time performance analytics</p>
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h1 className="text-4xl font-black text-gray-900 tracking-tight">Analytics Dashboard</h1>
+                <p className="text-gray-500 font-medium mt-1">Real-time performance and inventory insights</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="bg-white border border-gray-100 p-4 rounded-2xl hover:bg-gray-50 transition-all shadow-sm group"
+                  title="Refresh Data"
+                >
+                  <Activity className="w-5 h-5 text-gray-400 group-hover:text-green-600 transition-colors" />
+                </button>
+                <button 
+                  onClick={onLogout}
+                  className="bg-red-50 text-red-600 font-black px-8 py-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all flex items-center gap-3 active:scale-95"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Logout
+                </button>
+              </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Total Revenue</p>
                 <p className="text-4xl font-black text-green-700">₹{totalRevenue}</p>
@@ -203,14 +221,21 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                 <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Total Products</p>
                 <p className="text-4xl font-black text-gray-900">{totalProducts}</p>
                 <div className="mt-4 flex items-center gap-2 text-xs text-blue-600 font-bold">
-                  <Package className="w-3 h-3" /> All SKUs listed
+                  <Package className="w-3 h-3" /> Unique SKUs
+                </div>
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Inventory Count</p>
+                <p className="text-4xl font-black text-gray-900">{totalStock}</p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-green-600 font-bold">
+                  <Activity className="w-3 h-3" /> Total items in stock
                 </div>
               </div>
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Low Stock Alert</p>
                 <p className="text-4xl font-black text-orange-600">{lowStockItems.length}</p>
                 <div className="mt-4 flex items-center gap-2 text-xs text-orange-600 font-bold">
-                  <TrendingDown className="w-3 h-3" /> {lowStockItems.length} items need refill
+                  <TrendingDown className="w-3 h-3" /> Items need refill
                 </div>
               </div>
             </div>
