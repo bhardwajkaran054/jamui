@@ -22,15 +22,12 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Build
         run: npm run build
         env:
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
-
-      - name: Verify build
-        run: ls -la dist/index.html
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4

@@ -5,4 +5,3 @@ dist/
 *.zip
 .DS_Store
 database.sqlite
-package-lock.json
