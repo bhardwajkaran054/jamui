@@ -31,7 +31,7 @@ export default function AdminLogin({ onLogin, onClose }) {
           method: 'POST',
           body: JSON.stringify({ username, password })
         })
-        localStorage.setItem('adminToken', data.token)
+        localStorage.setItem('githubToken', data.token)
         onLogin(data.token)
       }
     } catch (err) {

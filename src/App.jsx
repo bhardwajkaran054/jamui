@@ -22,7 +22,7 @@ export default function App() {
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [token, setToken] = useState(localStorage.getItem('adminToken'))
+  const [token, setToken] = useState(localStorage.getItem('githubToken'))
   const [showLogin, setShowLogin] = useState(false)
   const [showSecret, setShowSecret] = useState(false)
   const [passedSecret, setPassedSecret] = useState(sessionStorage.getItem('passedSecret') === 'true')
@@ -112,7 +112,7 @@ export default function App() {
 
   const handleLogin = (newToken) => {
     setToken(newToken)
-    localStorage.setItem('adminToken', newToken)
+    localStorage.setItem('githubToken', newToken)
     setIsAdmin(true)
     setShowLogin(false)
     showNotification('Welcome back, Admin!')
@@ -120,7 +120,7 @@ export default function App() {
 
   const handleLogout = () => {
     setToken(null)
-    localStorage.removeItem('adminToken')
+    localStorage.removeItem('githubToken')
     sessionStorage.removeItem('passedSecret')
     setPassedSecret(false)
     setIsAdmin(false)

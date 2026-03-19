@@ -34,7 +34,19 @@ export const fetchDb = async () => {
     }
   }
 
-  // 2. Fallback to raw content (heavily cached by GitHub CDN)
+  // 2. Try fetching via API (without token) - Better consistency than Raw, but rate limited
+  try {
+    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}`);
+    if (response.ok) {
+      const fileData = await response.json();
+      const decoded = decodeURIComponent(escape(atob(fileData.content)));
+      return JSON.parse(decoded);
+    }
+  } catch (err) {
+    console.warn('[GITHUB] Public API fetch failed', err.message);
+  }
+
+  // 3. Fallback to raw content (heavily cached by GitHub CDN)
   const response = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`);
   if (!response.ok) throw new Error('Failed to fetch database from GitHub');
   return response.json();
