@@ -163,6 +163,17 @@
       "useImage": true,
       "stock": 10,
       "id": 19
+    },
+    {
+      "name": "Milk",
+      "price": 50,
+      "unit": "1",
+      "category": "Atta & Sugar",
+      "emoji": "🫘",
+      "image": "",
+      "useImage": false,
+      "stock": 100,
+      "id": 20
     }
   ],
   "categories": [
@@ -225,6 +236,15 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773940093459,
+      "productId": 20,
+      "productName": "Milk",
+      "oldStock": 0,
+      "newStock": 100,
+      "reason": "New Product Added",
+      "timestamp": "2026-03-19T17:08:13.459Z"
+    },
     {
       "id": 1773936432442,
       "productId": 19,
