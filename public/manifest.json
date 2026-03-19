@@ -1,0 +1,23 @@
+{
+  "name": "Jamui Super Mart",
+  "short_name": "JamuiMart",
+  "description": "Fresh groceries delivered to your door in Jamui, Bihar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#166534",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

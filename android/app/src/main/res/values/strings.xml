@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Jamui Super Mart</string>
+    <string name="title_activity_main">Jamui Super Mart</string>
+    <string name="package_name">com.jamui.supermart</string>
+    <string name="custom_url_scheme">com.jamui.supermart</string>
+</resources>
