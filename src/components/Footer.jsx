@@ -45,7 +45,7 @@ export default function Footer({ isAdmin, onLogout }) {
                 <span className="bg-green-800/50 p-2 rounded-lg text-lg">📲</span>
                 <div>
                   <p className="font-bold text-green-100">WhatsApp</p>
-                  <p>+91 7856053987</p>
+                  <p>+91 6202989990</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -62,7 +62,7 @@ export default function Footer({ isAdmin, onLogout }) {
             <h4 className="font-bold mb-4 text-green-100">Fast Checkout</h4>
             <p className="text-sm text-green-300/80 mb-6">Skip the lines. Order on WhatsApp and pay on delivery.</p>
             <a
-              href="https://wa.me/917856053987"
+              href="https://wa.me/916202989990"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-3 bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl transition-all shadow-xl shadow-orange-900/20 active:scale-95 w-full"
