@@ -277,6 +277,10 @@
     {
       "name": "MALAYPUR ",
       "fee": 0
+    },
+    {
+      "name": "JAMUI CITY ",
+      "fee": 10
     }
   ],
   "customers": [
