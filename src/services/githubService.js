@@ -25,10 +25,22 @@ export const fetchDb = async () => {
   
   const tryFetch = async (path, useToken = true) => {
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (useToken && token) headers['Authorization'] = `Bearer ${token}`;
+    // Use 'token' prefix for classic PATs (ghp_...)
+    if (useToken && token) headers['Authorization'] = `token ${token}`;
     
     try {
       const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`, { headers });
+      
+      if (response.status === 401) {
+        console.warn(`[GITHUB] 401 Unauthorized for ${path}. The token might be invalid or expired.`);
+        // If the token in localStorage is invalid, we should probably remove it
+        if (useToken && token === localStorage.getItem('githubToken')) {
+          console.warn('[GITHUB] Removing invalid token from localStorage');
+          localStorage.removeItem('githubToken');
+        }
+        return null;
+      }
+
       if (response.ok) {
         const fileData = await response.json();
         const binaryString = atob(fileData.content.replace(/\n/g, ''));
@@ -90,7 +102,7 @@ export const updateDb = async (newData) => {
 
   const tryGetSha = async (path, useToken = true) => {
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (useToken) headers['Authorization'] = `Bearer ${token}`;
+    if (useToken) headers['Authorization'] = `token ${token}`;
     
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
     const response = await fetch(url, { headers });
@@ -143,7 +155,7 @@ export const updateDb = async (newData) => {
   const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${finalPath}`, {
     method: 'PUT',
     headers: { 
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
@@ -156,6 +168,9 @@ export const updateDb = async (newData) => {
   });
 
   if (!updateResponse.ok) {
+    if (updateResponse.status === 401) {
+      localStorage.removeItem('githubToken');
+    }
     const error = await updateResponse.json().catch(() => ({ message: 'Unknown error' }));
     throw new Error(`Failed to update database on GitHub: ${error.message}`);
   }
@@ -169,7 +184,7 @@ export const updateDb = async (newData) => {
 export const validateToken = async (token) => {
   const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`, {
     headers: { 
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
     }
   });
