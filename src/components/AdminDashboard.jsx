@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Package, ClipboardList, LogOut, Trash2, Edit3, Plus, Clock, TrendingDown, AlertTriangle, BarChart3, PieChart, Activity, ShoppingBag } from 'lucide-react'
+import { Package, ClipboardList, LogOut, Trash2, Edit3, Plus, Clock, TrendingDown, AlertTriangle, BarChart3, PieChart, Activity, ShoppingBag, LayoutGrid } from 'lucide-react'
 import { apiFetch } from '../api'
 import {
   Chart as ChartJS,
@@ -153,6 +153,16 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
           >
             <Package className="w-5 h-5" />
             Inventory
+          </button>
+
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+              activeTab === 'categories' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <LayoutGrid className="w-5 h-5" />
+            Categories
           </button>
 
           <button
@@ -344,7 +354,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'inventory' ? (
           <div className="max-w-6xl mx-auto space-y-12">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
@@ -394,6 +404,47 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                     </span>
                   </div>
                   <p className="text-2xl font-black text-green-700">₹{product.price}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+                <LayoutGrid className="w-6 h-6 text-green-600" />
+                Manage Categories
+              </h2>
+              <button 
+                onClick={() => {
+                  const name = prompt('Enter new category name:')
+                  if (name) onAdminAction('addCategory', name)
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white font-black px-6 py-3 rounded-xl transition-all flex items-center gap-2 active:scale-95 shadow-lg shadow-green-100"
+              >
+                <Plus className="w-5 h-5" />
+                Add Category
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.filter(c => c !== 'All').map(category => (
+                <div key={category} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:border-green-200 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-green-50 w-12 h-12 rounded-2xl flex items-center justify-center text-green-600 font-bold">
+                      {category[0]}
+                    </div>
+                    <div>
+                      <p className="font-black text-gray-800">{category}</p>
+                      <p className="text-xs text-gray-400 font-bold">{products.filter(p => p.category === category).length} Products</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onAdminAction('deleteCategory', category)}
+                    className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               ))}
             </div>

@@ -79,11 +79,11 @@ export default function App() {
     }
   }
 
-  const handleAdminAction = async (action, product) => {
+  const handleAdminAction = async (action, data) => {
     if (action === 'delete') {
       if (!confirm('Are you sure you want to delete this product?')) return
       try {
-        await apiFetch(`/products/${product.id}`, {
+        await apiFetch(`/products/${data.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -93,8 +93,33 @@ export default function App() {
       } catch (err) {
         showNotification(err.message || 'Delete failed', 'error')
       }
+    } else if (action === 'deleteCategory') {
+      if (!confirm(`Are you sure you want to delete category "${data}"? Products in this category will be moved to "Other".`)) return
+      try {
+        await apiFetch(`/categories/${encodeURIComponent(data)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        showNotification('Category deleted successfully')
+        await fetchProducts()
+        await fetchCategories()
+      } catch (err) {
+        showNotification(err.message || 'Delete failed', 'error')
+      }
+    } else if (action === 'addCategory') {
+      try {
+        await apiFetch('/categories', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ name: data })
+        })
+        showNotification('Category added successfully')
+        await fetchCategories()
+      } catch (err) {
+        showNotification(err.message || 'Add category failed', 'error')
+      }
     } else if (action === 'edit') {
-      setEditingProduct(product)
+      setEditingProduct(data)
     } else if (action === 'add') {
       setIsAdding(true)
     } else if (action === 'save') {
@@ -102,7 +127,7 @@ export default function App() {
         await apiFetch('/products', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify(product)
+          body: JSON.stringify(data)
         })
         showNotification('Product saved successfully')
         await fetchProducts()

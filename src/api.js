@@ -34,8 +34,29 @@ export const apiFetch = async (endpoint, options = {}) => {
   }
 
   if (endpoint === '/categories' && !options.method) {
-    const categories = ['All', ...new Set(db.products.map(p => p.category))];
-    return categories;
+    return ['All', ...(db.categories || [])];
+  }
+
+  if (endpoint === '/categories' && options.method === 'POST') {
+    const { name } = JSON.parse(options.body);
+    if (!db.categories) db.categories = [];
+    if (!db.categories.includes(name)) {
+      db.categories.push(name);
+      await updateDb(db);
+    }
+    return { success: true };
+  }
+
+  if (endpoint.startsWith('/categories/') && options.method === 'DELETE') {
+    const name = decodeURIComponent(endpoint.split('/').pop());
+    db.categories = (db.categories || []).filter(c => c !== name);
+    // Also update products that had this category to 'Uncategorized' or similar? 
+    // Or just leave them. Usually deleting a category means products in it become uncategorized.
+    db.products.forEach(p => {
+      if (p.category === name) p.category = 'Other';
+    });
+    await updateDb(db);
+    return { success: true };
   }
 
   if (endpoint === '/products' && options.method === 'POST') {
@@ -47,6 +68,11 @@ export const apiFetch = async (endpoint, options = {}) => {
     } else {
       const newId = Math.max(0, ...db.products.map(p => p.id)) + 1;
       db.products.push({ ...product, id: newId });
+    }
+
+    // Auto-add category if it doesn't exist
+    if (product.category && !db.categories.includes(product.category)) {
+      db.categories.push(product.category);
     }
     
     await updateDb(db);
