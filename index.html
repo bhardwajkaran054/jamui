@@ -7,6 +7,22 @@
     <meta name="theme-color" content="#166534" />
     <link rel="manifest" href="manifest.json" />
     <title>Jamui Super Mart</title>
+    <script>
+      // Aggressive Service Worker removal and cache clearing
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      // Clear all caches on load if not in private mode
+      if (window.caches) {
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(names);
+        });
+      }
+    </script>
     <!-- Start Single Page Apps for GitHub Pages -->
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages

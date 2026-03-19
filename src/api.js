@@ -112,6 +112,24 @@ export const apiFetch = async (endpoint, options = {}) => {
     return db.orders;
   }
 
+  if (endpoint.startsWith('/orders/') && options.method === 'PUT') {
+    const id = parseInt(endpoint.split('/').pop());
+    const { status } = JSON.parse(options.body);
+    const order = db.orders.find(o => o.id === id);
+    if (order) {
+      order.status = status;
+      await updateDb(db);
+    }
+    return { success: true };
+  }
+
+  if (endpoint.startsWith('/orders/') && options.method === 'DELETE') {
+    const id = parseInt(endpoint.split('/').pop());
+    db.orders = db.orders.filter(o => o.id !== id);
+    await updateDb(db);
+    return { success: true };
+  }
+
   if (endpoint === '/login' && options.method === 'POST') {
     // GitHub backend doesn't support real login, it uses GitHub Token
     // We'll return success to allow the dashboard to open, where it will ask for the token

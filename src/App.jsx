@@ -130,6 +130,30 @@ export default function App() {
       } catch (err) {
         showNotification(err.message || 'Add category failed', 'error')
       }
+    } else if (action === 'updateOrderStatus') {
+      try {
+        await apiFetch(`/orders/${data.id}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ status: data.status })
+        })
+        showNotification(`Order ${data.status} successfully`)
+        await fetchOrders()
+      } catch (err) {
+        showNotification(err.message || 'Update failed', 'error')
+      }
+    } else if (action === 'deleteOrder') {
+      if (!confirm('Delete this order record?')) return
+      try {
+        await apiFetch(`/orders/${data.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        showNotification('Order deleted')
+        await fetchOrders()
+      } catch (err) {
+        showNotification(err.message || 'Delete failed', 'error')
+      }
     } else if (action === 'edit') {
       setEditingProduct(data)
     } else if (action === 'add') {
@@ -254,6 +278,7 @@ export default function App() {
           onAdminAction={handleAdminAction}
           products={products}
           categories={categories}
+          orders={orders}
         />
         {(editingProduct || isAdding) && (
           <ProductEditModal 

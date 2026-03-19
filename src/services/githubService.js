@@ -26,8 +26,12 @@ export const fetchDb = async () => {
   // 1. Try fetching via API (with token) for real-time consistency
   if (token) {
     try {
-      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}?t=${Date.now()}`, {
-        headers: { 'Authorization': `token ${token}` }
+      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}?t=${Date.now()}&nocache=${Math.random()}`, {
+        headers: { 
+          'Authorization': `token ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
       if (response.ok) {
         const fileData = await response.json();
@@ -47,7 +51,12 @@ export const fetchDb = async () => {
 
   // 2. Try fetching via API (without token) - Better consistency than Raw, but rate limited
   try {
-    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}?t=${Date.now()}`);
+    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}?t=${Date.now()}&nocache=${Math.random()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    });
     if (response.ok) {
       const fileData = await response.json();
       const binaryString = atob(fileData.content.replace(/\n/g, ''));
