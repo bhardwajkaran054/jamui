@@ -52,10 +52,16 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const [activeTab, setActiveTab] = useState('analytics')
   const [orders, setOrders] = useState(initialOrders || [])
   const [loading, setLoading] = useState(false)
+  const [orderFilter, setOrderFilter] = useState('pending') // Default to pending for approval flow
 
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders)
   }, [initialOrders])
+
+  const filteredOrders = orders.filter(o => {
+    if (orderFilter === 'all') return true
+    return o.status === orderFilter
+  })
 
   const fetchOrders = async () => {
     try {
@@ -413,9 +419,24 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               </div>
               <div className="flex items-center gap-3">
                 <div className="bg-white border border-gray-100 p-1.5 rounded-2xl flex gap-1 shadow-sm">
-                  <button className="px-4 py-2 rounded-xl text-xs font-black bg-green-600 text-white">All</button>
-                  <button className="px-4 py-2 rounded-xl text-xs font-black text-gray-400 hover:bg-gray-50">Pending</button>
-                  <button className="px-4 py-2 rounded-xl text-xs font-black text-gray-400 hover:bg-gray-50">Completed</button>
+                  <button 
+                    onClick={() => setOrderFilter('all')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${orderFilter === 'all' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-gray-400 hover:bg-gray-50'}`}
+                  >
+                    All
+                  </button>
+                  <button 
+                    onClick={() => setOrderFilter('pending')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${orderFilter === 'pending' ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' : 'text-gray-400 hover:bg-gray-50'}`}
+                  >
+                    Pending
+                  </button>
+                  <button 
+                    onClick={() => setOrderFilter('completed')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${orderFilter === 'completed' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-gray-400 hover:bg-gray-50'}`}
+                  >
+                    Approved
+                  </button>
                 </div>
                 <button onClick={fetchOrders} className="bg-white border border-gray-100 p-4 rounded-2xl hover:bg-gray-50 transition-all shadow-sm group">
                   <Activity className={`w-5 h-5 text-gray-400 group-hover:text-green-600 ${loading ? 'animate-spin' : ''}`} />
@@ -427,17 +448,17 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               <div className="flex justify-center py-20">
                 <div className="w-12 h-12 border-4 border-green-600/20 border-t-green-600 rounded-full animate-spin" />
               </div>
-            ) : orders.length === 0 ? (
+            ) : filteredOrders.length === 0 ? (
               <div className="bg-white rounded-[3rem] p-24 text-center border border-gray-100 shadow-sm">
                 <div className="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
                   <ShoppingBag className="w-10 h-10 text-gray-300" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2">No Orders Yet</h3>
-                <p className="text-gray-400 font-medium">When customers buy products, they will appear here.</p>
+                <h3 className="text-2xl font-black text-gray-900 mb-2">No {orderFilter} Orders</h3>
+                <p className="text-gray-400 font-medium">Try changing the filter or refresh data.</p>
               </div>
             ) : (
               <div className="grid gap-8">
-                {orders.map(order => (
+                {filteredOrders.map(order => (
                   <div key={order.id} className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-green-900/5 transition-all group relative overflow-hidden">
                     {/* Status Badge Overlay */}
                     <div className={`absolute top-0 right-0 px-8 py-2 rounded-bl-3xl text-[10px] font-black uppercase tracking-widest ${

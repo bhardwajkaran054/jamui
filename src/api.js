@@ -97,13 +97,8 @@ export const apiFetch = async (endpoint, options = {}) => {
     };
     
     db.orders.unshift(newOrder);
+    // Note: Stock is now only deducted upon APPROVAL, as requested.
     
-    // Update stock
-    items.forEach(item => {
-      const product = db.products.find(p => p.id === item.id);
-      if (product) product.stock = Math.max(0, (product.stock || 0) - item.quantity);
-    });
-
     await updateDb(db);
     return { success: true };
   }
@@ -117,6 +112,16 @@ export const apiFetch = async (endpoint, options = {}) => {
     const { status } = JSON.parse(options.body);
     const order = db.orders.find(o => o.id === id);
     if (order) {
+      // If status is being changed to 'completed' (approved)
+      if (status === 'completed' && order.status !== 'completed') {
+        // Deduct stock from inventory
+        order.items.forEach(item => {
+          const product = db.products.find(p => p.id === item.id);
+          if (product) {
+            product.stock = Math.max(0, (product.stock || 0) - item.quantity);
+          }
+        });
+      }
       order.status = status;
       await updateDb(db);
     }
