@@ -25,8 +25,13 @@ export const fetchDb = async () => {
       });
       if (response.ok) {
         const fileData = await response.json();
-        // Base64 to UTF-8 decoding
-        const decoded = decodeURIComponent(escape(atob(fileData.content)));
+        // Modern Base64 to UTF-8 decoding using TextDecoder
+        const binaryString = atob(fileData.content.replace(/\n/g, ''));
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const decoded = new TextDecoder('utf-8').decode(bytes);
         return JSON.parse(decoded);
       }
     } catch (err) {
@@ -39,7 +44,12 @@ export const fetchDb = async () => {
     const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}`);
     if (response.ok) {
       const fileData = await response.json();
-      const decoded = decodeURIComponent(escape(atob(fileData.content)));
+      const binaryString = atob(fileData.content.replace(/\n/g, ''));
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const decoded = new TextDecoder('utf-8').decode(bytes);
       return JSON.parse(decoded);
     }
   } catch (err) {
@@ -68,9 +78,16 @@ export const updateDb = async (newData) => {
   const fileData = await getFileResponse.json();
   const sha = fileData.sha;
 
-  // 2. Commit the new content (Base64 encoding with UTF-8 support)
+  // 2. Commit the new content (Modern Base64 encoding with UTF-8 support)
   const jsonString = JSON.stringify(newData, null, 2);
-  const content = btoa(unescape(encodeURIComponent(jsonString)));
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(jsonString);
+  let binaryString = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binaryString += String.fromCharCode(bytes[i]);
+  }
+  const content = btoa(binaryString);
+
   const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DB_PATH}`, {
     method: 'PUT',
     headers: {
