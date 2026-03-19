@@ -277,6 +277,10 @@
     {
       "name": "Far (above 5km)",
       "fee": 100
+    },
+    {
+      "name": "MALAYPUR ",
+      "fee": 0
     }
   ],
   "customers": [
