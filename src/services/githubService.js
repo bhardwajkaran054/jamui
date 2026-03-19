@@ -182,11 +182,44 @@ export const updateDb = async (newData) => {
  * Validates a GitHub Token by checking repository access
  */
 export const validateToken = async (token) => {
-  const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`, {
-    headers: { 
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json'
+  try {
+    // 1. First, check if the token is valid by getting the authenticated user
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: { 
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!userResponse.ok) {
+      console.error('[GITHUB] Invalid Token:', userResponse.status);
+      return false;
     }
-  });
-  return response.ok;
+
+    const userData = await userResponse.json();
+    console.log('[GITHUB] Token belongs to:', userData.login);
+
+    // 2. Check if the repo exists under either bhardwajkaran054 OR the token owner
+    const repoOwners = ['bhardwajkaran054', userData.login];
+    
+    for (const owner of repoOwners) {
+      const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${REPO_NAME}`, {
+        headers: { 
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      
+      if (repoResponse.ok) {
+        console.log(`[GITHUB] Found repository under owner: ${owner}`);
+        return true;
+      }
+    }
+
+    console.error(`[GITHUB] Repository ${REPO_NAME} not found under ${repoOwners.join(' or ')}`);
+    return false;
+  } catch (err) {
+    console.error('[GITHUB] Validation request failed:', err);
+    return false;
+  }
 };
