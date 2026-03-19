@@ -22,26 +22,21 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: npm run build
         env:
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
 
-      - name: Debug - List build output
-        run: |
-          echo "Checking dist directory..."
-          ls -la dist
-          echo "Checking dist/assets directory..."
-          ls -la dist/assets || echo "No assets directory"
+      - name: Check build output
+        run: ls -la dist
 
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           cname: jamuisupermart.in
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: "Deploy to GitHub Pages: ${{ github.sha }}"
