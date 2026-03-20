@@ -4,13 +4,19 @@ import { fetchDb, updateDb } from './services/githubService';
  * Switch between 'github-backend' and 'local-node-backend'
  */
 export const BACKEND_MODE = 'local-node-backend'; 
-export const API_URL = '/api';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
   // 1. Local Node.js Backend Implementation
   if (BACKEND_MODE === 'local-node-backend') {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+    let url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
     
+    // Auto-fix for relative URLs in native/Capacitor environments
+    if (!url.startsWith('http') && typeof window !== 'undefined' && (window.location.protocol === 'capacitor:' || window.location.protocol === 'file:')) {
+      // In native app, we can't use relative paths. Fallback to a common local dev IP or alert user.
+      console.warn('[API] Relative URL detected in native environment. This will likely fail.');
+    }
+
     // Auto-add Authorization header if token exists
     const token = localStorage.getItem('githubToken');
     const headers = {
@@ -22,22 +28,28 @@ export const apiFetch = async (endpoint, options = {}) => {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('githubToken');
-        window.dispatchEvent(new CustomEvent('github-token-cleared'));
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('githubToken');
+          window.dispatchEvent(new CustomEvent('github-token-cleared'));
+        }
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`[API ERROR] ${url} (${response.status}):`, errorData.error || response.statusText);
+        return null;
       }
-      const errorData = await response.json().catch(() => ({}));
-      console.error(`[API FETCH ERROR] ${url}:`, errorData.error || response.statusText);
-      return null; // Return null instead of throwing to allow component-level handling
-    }
 
-    return response.json();
+      return await response.json();
+    } catch (err) {
+      console.error(`[API NETWORK ERROR] ${url}:`, err.message);
+      // Return null so the app can show the "Service Unavailable" screen instead of crashing
+      return null;
+    }
   }
 
   // 2. GitHub Repository Backend Implementation

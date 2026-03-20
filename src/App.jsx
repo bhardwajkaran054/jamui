@@ -10,7 +10,7 @@ import AdminLogin from './components/AdminLogin'
 import SecretChallenge from './components/SecretChallenge'
 import AdminDashboard from './components/AdminDashboard'
 import ProductEditModal from './components/ProductEditModal'
-import { CheckCircle, AlertCircle, X } from 'lucide-react'
+import { CheckCircle, AlertCircle, X, RefreshCw } from 'lucide-react'
 import { apiFetch } from './api'
 import { soundService } from './services/soundService'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -455,19 +455,41 @@ export default function App() {
   if (!loading && products.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-red-50 p-6 rounded-[2rem] border border-red-100 max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Service Temporarily Unavailable</h2>
-          <p className="text-gray-500 font-medium mb-6">
-            We're having trouble connecting to our product database. Please check your internet connection and try again.
+        <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 max-w-lg shadow-2xl shadow-red-900/5 animate-in zoom-in-95 duration-500">
+          <div className="w-20 h-20 bg-red-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Backend Unreachable</h2>
+          <p className="text-gray-500 font-bold mb-8 leading-relaxed">
+            The storefront is unable to connect to the management server. 
+            This usually happens if the backend process has stopped or the network is blocked.
           </p>
+          
+          <div className="bg-white/50 p-6 rounded-2xl border border-red-100 text-left mb-8 space-y-3">
+            <p className="text-[10px] text-red-400 font-black uppercase tracking-widest mb-1">Troubleshooting Checklist:</p>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">1</div>
+              <p className="text-xs font-bold text-gray-600">Ensure you ran <code className="bg-red-50 px-1.5 py-0.5 rounded text-red-700">npm run dev</code> (not just vite)</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">2</div>
+              <p className="text-xs font-bold text-gray-600">Check if the server is listening on port <span className="text-red-700 font-black">5001</span></p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">3</div>
+              <p className="text-xs font-bold text-gray-600">If using mobile, ensure your PC and phone are on the same WiFi</p>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-3">
             <button 
               onClick={() => window.location.reload()}
-              className="bg-red-600 text-white font-black px-6 py-3 rounded-2xl hover:bg-red-700 transition-all"
+              className="bg-red-600 text-white font-black px-8 py-4 rounded-2xl hover:bg-red-700 transition-all active:scale-95 shadow-xl shadow-red-200 flex items-center justify-center gap-3"
             >
+              <RefreshCw className="w-5 h-5" />
               Retry Connection
             </button>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-4">Jamui Super Mart • System Health v4.1</p>
           </div>
         </div>
       </div>

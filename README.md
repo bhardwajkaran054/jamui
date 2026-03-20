@@ -7,7 +7,27 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![Download Android APK](https://img.shields.io/badge/Download-Android%20App-brightgreen?style=flat-square&logo=android)](https://github.com/bhardwajkaran054/jamui/raw/android-build/jamui-supermart.apk)
 
-A professional, enterprise-grade grocery store web application for **Jamui Super Mart** in Bihar, India. This project showcases a cutting-edge **"Serverless Git-as-a-Backend"** architecture, providing full dynamic functionality without traditional backend overhead.
+A professional, enterprise-grade grocery store application for **Jamui Super Mart**. This project features a robust **Node.js/Express** backend with **SQLite** for high-performance data management and production stability.
+
+---
+
+## 🚀 Getting Started (Local Development)
+
+To run the application on your computer:
+
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Start the App (Frontend + Backend)**:
+   ```bash
+   npm run dev
+   ```
+   *This command starts the management server on port 5001 and the storefront on port 5173.*
+
+3. **Access the Store**:
+   Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
@@ -44,7 +64,7 @@ graph TD
     Products -->|Quick Checkout| Cart{Cart System}
     Cart -->|Validation| Validation[Name & Phone Check]
     Validation -->|Success| WhatsApp[WhatsApp Redirect]
-    Validation -->|Success| GH_API[GitHub API - Save Order]
+    Validation -->|Success| API[Node.js API - Save Order]
     
     %% Order Tracking & History
     Storefront -->|Track Order| Tracking[Order Tracking Modal]
@@ -53,7 +73,7 @@ graph TD
     SingleOrder -->|Polling| LiveUpdate[Live Status Refresh 10s]
     LiveUpdate -->|Status Changed| Notify[Browser/Push Notification]
     LiveUpdate -->|Status Changed| Haptics[Mobile Haptic/Sound]
-    GH_API <--> Tracking
+    API <--> Tracking
     
     %% Admin Flow
     Admin((Admin)) -->|Auth| Login[Admin Login]
@@ -79,26 +99,21 @@ graph TD
     %% CI/CD & Build Flow
     Developer((Developer)) -->|Push Code| GitHub[GitHub Repo]
     
-    subgraph CI_CD [GitHub Actions]
-        BuildWeb[Build Web App]
-        BuildAPK[Build Signed Android APK]
-        Deploy[Deploy to GH Pages]
+    subgraph Deployment [Cloud Hosting]
+        Server[Node.js Server]
+        Database[(SQLite DB)]
     end
     
-    GitHub --> CI_CD
-    Deploy --> Storefront
-    BuildAPK --> APK_Branch[(android-build branch)]
-    APK_Branch -->|Download| AndroidApp[Android Mobile App]
-
-    %% Database
-    GH_API <-->|Read/Write| DB[(db.json)]
+    GitHub --> Server
+    Server <--> Database
+    Storefront <--> API
 ```
 
-### 1. Git-as-a-Backend (GaaB)
-The core innovation of this project is its serverless data management. Unlike standard applications that require a running database server (like PostgreSQL or MongoDB), this app uses the GitHub repository itself as a structured database.
-- **Data Store**: [db.json](public/db.json) acts as the centralized source of truth.
-- **Persistence**: Administrative changes are committed directly to the repository via the GitHub REST API.
-- **Versioning**: Every inventory change creates a historical audit trail within the Git log.
+### 1. Robust Node.js Backend
+The application features a professional backend architecture designed for production stability and speed.
+- **Management Server**: A dedicated Express.js server handles all order processing, inventory updates, and administrative logic.
+- **SQLite Database**: Uses a high-performance relational database for reliable data persistence and structured queries.
+- **Audit Logs**: Every inventory change is recorded in a stock history audit trail, providing full transparency.
 
 ### 2. Modern Frontend Stack
 - **React 18**: High-performance UI rendering with efficient state management.
@@ -108,10 +123,10 @@ The core innovation of this project is its serverless data management. Unlike st
 
 ### 3. Security Implementation
 The application implements a multi-layered security model to protect administrative functions:
+- **JWT Authentication**: Secure JSON Web Token based authentication for all administrative actions.
 - **Private Entry Points**: Hidden administrative navigation and access controls.
 - **Base64 Challenges**: A preliminary verification layer to prevent automated scanning.
-- **PAT Authorization**: Leverages GitHub Personal Access Tokens (PAT) for authenticated write operations, ensuring only authorized owners can modify data.
-- **Environment Parity**: Seamless transition between development and production environments via unified API routing.
+- **Data Integrity**: Foreign key constraints and server-side validation ensure database consistency.
 
 ---
 
