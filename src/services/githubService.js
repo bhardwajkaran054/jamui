@@ -46,31 +46,47 @@ const getToken = () => {
 export const fetchDb = async () => {
   const token = getToken();
   
+  // 1. STRATEGY: Try Raw GitHub Content FIRST (Fastest, no rate limits, public-safe)
+  try {
+    const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
+    const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
+    if (rawResponse.ok) {
+      const data = await rawResponse.json();
+      if (data && data.products) {
+        console.log('[GITHUB] Database loaded via Raw Content URL');
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[GITHUB] Raw fetch fallback:', err.message);
+  }
+
+  // 2. Fallback: REST API
   const tryFetch = async (path, useToken = true) => {
     // If we don't have a token and useToken is true, skip this attempt to save time/rate-limit
     if (useToken && !token) return null;
 
-    const headers = { 
+    const headers = {
       'Accept': 'application/vnd.github.v3+json'
     };
-    
+
     if (useToken && token) {
       headers['Authorization'] = `token ${token.trim()}`;
     }
-    
+
     try {
       // Use a unique query parameter for cache-busting
       const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
-      const response = await fetch(url, { 
+      const response = await fetch(url, {
         headers,
         method: 'GET',
         mode: 'cors'
       });
-      
+
       if (response.status === 401 || response.status === 403) {
         const errorData = await response.json().catch(() => ({}));
         console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
-        
+
         // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
         // Remove it so we don't keep failing and hitting rate limits.
         if (response.status === 401 && useToken) {
@@ -79,19 +95,16 @@ export const fetchDb = async () => {
             const badToken = token.trim();
             sessionStorage.setItem('badGithubToken', badToken);
             localStorage.removeItem('githubToken');
-            
-            // Do NOT remove publicOrderToken here, as it might be used by other sessions
-            // but for this specific session, we should probably clear it if it was the one being used.
+
             const currentPublic = localStorage.getItem('publicOrderToken');
             if (currentPublic === badToken) {
               localStorage.removeItem('publicOrderToken');
             }
-            
-            // DISPATCH EVENT: Notify the UI that the token is gone
+
             window.dispatchEvent(new CustomEvent('github-token-cleared'));
           }
-          // Throw error to stop the loop/polling in App.jsx
-          throw new Error('401 Unauthorized');
+          // Do NOT throw, just return null to try the next fallback
+          return null;
         }
         return null;
       }
@@ -112,37 +125,18 @@ export const fetchDb = async () => {
     return null;
   };
 
-  // NEW STRATEGY:
-  // 1. If admin (has token), try REST API with token first (Highest fresh priority)
+  // 3. Fallback: REST API with token
   if (token) {
-    try {
-      const data = await tryFetch(DB_PATH, true);
-      if (data) return data;
-    } catch (err) {
-      console.warn('[GITHUB] Token failed, falling back to raw content...', err.message);
-      // The token was already cleared by tryFetch if it was a 401
-    }
+    const data = await tryFetch(DB_PATH, true);
+    if (data) return data;
   }
 
-  // 2. If not admin OR REST API failed, try Raw GitHub Content (Safe from rate limits, read-only)
-  try {
-    const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
-    const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
-    if (rawResponse.ok) {
-      const data = await rawResponse.json();
-      if (data) return data;
-    }
-  } catch (err) {
-    console.warn('[GITHUB] Raw fetch failed:', err.message);
-  }
+  // 4. Final Fallback: REST API without token
+  const finalData = await tryFetch(DB_PATH, false);
+  if (finalData) return finalData;
 
-  // 3. Last fallback: Try REST API without token (Only if everything else failed)
-  try {
-    return await tryFetch(DB_PATH, false);
-  } catch (err) {
-    console.error('[GITHUB] All fetch methods failed:', err.message);
-    return { products: [], orders: [], categories: [] }; // Return minimal valid structure
-  }
+  // 5. Emergency Default
+  return { products: [], orders: [], categories: [] };
 };
 
 /**
