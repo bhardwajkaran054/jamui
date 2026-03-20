@@ -32,11 +32,12 @@ Experience Jamui Super Mart as a native application on your Android device.
 
 ---
 
-## 🛠️ Technical Architecture
+## 🛠️ Technical Architecture and Flow Daigram
 
-![Jamui Super Mart Architecture](JamUI-Arch.png) Old 
+Architecture Daigram ![Jamui Super Mart Architecture](JamUI-Arch.png)  
 
 
+Daigram Flow 
 ```mermaid
 graph TD
     %% User/Customer Flow
