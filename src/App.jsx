@@ -72,6 +72,16 @@ export default function App() {
       setShowSecret(false)
       setShowLogin(false)
     }
+
+    // Direct tracking link detection
+    const hash = window.location.hash
+    if (hash.includes('/track/')) {
+      const trackId = hash.split('/track/')[1]
+      if (trackId) {
+        localStorage.setItem('latestOrderId', trackId)
+        setTrackingOpen(true)
+      }
+    }
   }, [token, passedSecret])
 
   const showNotification = (message, type = 'success') => {
@@ -183,7 +193,10 @@ export default function App() {
         await apiFetch(`/orders/${data.id}`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ status: data.status })
+          body: JSON.stringify({ 
+            status: data.status,
+            estimatedDelivery: data.estimatedDelivery 
+          })
         })
         showNotification(`Order ${data.status} successfully`)
         await fetchOrders()

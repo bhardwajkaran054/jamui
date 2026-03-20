@@ -149,9 +149,10 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint.startsWith('/orders/') && options.method === 'PUT') {
     const id = parseInt(endpoint.split('/').pop());
-    const { status } = JSON.parse(options.body);
+    const { status, estimatedDelivery } = JSON.parse(options.body);
     const order = db.orders.find(o => o.id === id);
     if (order) {
+      if (estimatedDelivery) order.estimatedDelivery = estimatedDelivery;
       // If status is being changed to 'completed' (approved)
       if (status === 'completed' && order.status !== 'completed') {
         // Deduct stock from inventory

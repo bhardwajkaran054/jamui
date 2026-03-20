@@ -348,6 +348,8 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
       message += `--------------------------\n`
       message += `*TOTAL AMOUNT: ₹${order.total}*\n`
       message += `--------------------------\n`
+      message += `*Live Tracking:* jamuisupermart.in/#/track/${order.id}\n`
+      message += `--------------------------\n`
       message += `_Please attach the PDF invoice you just saved._\n`
       message += `--------------------------\n`
       message += `Thank you for shopping with us!\n`
@@ -1021,16 +1023,26 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                           {order.status === 'pending' ? (
                             <button 
-                              onClick={() => onAdminAction('updateOrderStatus', { id: order.id, status: 'completed' })}
+                              onClick={() => {
+                                const est = prompt('Estimated Delivery (e.g. 30-45 mins):', '30-45 mins');
+                                onAdminAction('updateOrderStatus', { id: order.id, status: 'completed', estimatedDelivery: est });
+                              }}
                               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
                             >
                               <CheckCircle2 className="w-5 h-5" />
                               Approve Sale
                             </button>
                           ) : (
-                            <div className="flex-1 bg-gray-50 text-gray-400 font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-3 border border-gray-100">
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
-                              Sale Completed
+                            <div className="flex-1 bg-gray-50 text-gray-400 font-black px-6 py-4 rounded-2xl flex flex-col items-center justify-center gap-1 border border-gray-100">
+                              <div className="flex items-center gap-3">
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                Sale Completed
+                              </div>
+                              {order.estimatedDelivery && (
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                  Delivery: {order.estimatedDelivery}
+                                </p>
+                              )}
                             </div>
                           )}
                           
