@@ -150,7 +150,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint.startsWith('/orders/') && options.method === 'PUT') {
     const id = parseInt(endpoint.split('/').pop());
-    const { status, deliveryMessage, rejectionReason } = JSON.parse(options.body);
+    const { status, deliveryMessage, rejectionReason, deliveryHours, driver, cancelReason } = JSON.parse(options.body);
     const order = db.orders.find(o => o.id === id);
     if (order) {
       // If status is being changed to 'completed' (approved)
@@ -176,12 +176,43 @@ export const apiFetch = async (endpoint, options = {}) => {
         });
       }
       
-      order.status = status;
+      if (status) order.status = status;
       if (deliveryMessage) order.deliveryMessage = deliveryMessage;
       if (rejectionReason) order.rejectionReason = rejectionReason;
+      if (deliveryHours) {
+        order.deliveryHours = parseInt(deliveryHours);
+        order.approvalTimestamp = new Date().toISOString();
+      }
+      if (driver) order.driver = driver;
+      if (cancelReason) order.cancelReason = cancelReason;
       
       await updateDb(db);
     }
+    return { success: true };
+  }
+
+  // New Endpoint: Drivers
+  if (endpoint === '/drivers' && !options.method) {
+    return db.drivers || [];
+  }
+
+  if (endpoint === '/drivers' && options.method === 'POST') {
+    const driver = JSON.parse(options.body);
+    if (!db.drivers) db.drivers = [];
+    const index = db.drivers.findIndex(d => d.id === driver.id);
+    if (index !== -1) {
+      db.drivers[index] = driver;
+    } else {
+      db.drivers.push({ ...driver, id: Date.now() });
+    }
+    await updateDb(db);
+    return { success: true };
+  }
+
+  if (endpoint.startsWith('/drivers/') && options.method === 'DELETE') {
+    const id = parseInt(endpoint.split('/').pop());
+    db.drivers = (db.drivers || []).filter(d => d.id !== id);
+    await updateDb(db);
     return { success: true };
   }
 

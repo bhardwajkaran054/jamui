@@ -8,12 +8,39 @@ export default function OrderTracking({ initialOrderId, onClose }) {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [error, setError] = useState('')
+  const [timeLeft, setTimeLeft] = useState({})
+  const [customerStats, setCustomerStats] = useState(null)
 
   useEffect(() => {
     if (initialOrderId) {
       handleSearch(initialOrderId)
     }
   }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const newTimeLeft = {}
+      orders.forEach(order => {
+        if (order.status === 'completed' && order.approvalTimestamp && order.deliveryHours) {
+          const approvalDate = new Date(order.approvalTimestamp)
+          const deliveryDate = new Date(approvalDate.getTime() + order.deliveryHours * 60 * 60 * 1000)
+          const now = new Date()
+          const diff = deliveryDate - now
+          
+          if (diff > 0) {
+            const h = Math.floor(diff / (1000 * 60 * 60))
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            const s = Math.floor((diff % (1000 * 60)) / 1000)
+            newTimeLeft[order.id] = `${h}h ${m}m ${s}s`
+          } else {
+            newTimeLeft[order.id] = 'Delivered'
+          }
+        }
+      })
+      setTimeLeft(newTimeLeft)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [orders])
 
   const handleSearch = async (query = searchQuery) => {
     if (!query.trim()) return
@@ -22,9 +49,8 @@ export default function OrderTracking({ initialOrderId, onClose }) {
     setError('')
     
     try {
-      // We fetch all orders and filter client-side for public tracking
-      // In a real backend, we would have a specific tracking endpoint
       const allOrders = await apiFetch('/orders')
+      const allCustomers = await apiFetch('/customers')
       
       const results = allOrders.filter(order => {
         const idMatch = order.id.toString().includes(query) || 
@@ -34,14 +60,51 @@ export default function OrderTracking({ initialOrderId, onClose }) {
       })
 
       setOrders(results)
+      
+      // Calculate loyalty points based on phone number history
+      if (results.length > 0) {
+        const phone = results[0].customer?.phone
+        if (phone) {
+          const customer = allCustomers.find(c => c.phone === phone)
+          if (customer) {
+            setCustomerStats(customer)
+          }
+        }
+      }
+
       if (results.length === 0) {
         setError('No orders found with that ID or Phone number.')
+        setCustomerStats(null)
       }
     } catch (err) {
       setError('Failed to fetch tracking information.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCancelOrder = async (orderId) => {
+    if (!confirm('Are you sure you want to cancel this order?')) return
+    try {
+      await apiFetch(`/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          status: 'rejected', 
+          rejectionReason: 'Cancelled by customer' 
+        })
+      })
+      handleSearch()
+      alert('Order cancelled successfully!')
+    } catch (err) {
+      alert('Failed to cancel order.')
+    }
+  }
+
+  const canCancel = (timestamp) => {
+    const orderDate = new Date(timestamp)
+    const now = new Date()
+    const diffInMinutes = (now - orderDate) / (1000 * 60)
+    return diffInMinutes <= 5
   }
 
   const getStatusColor = (status) => {
@@ -101,6 +164,32 @@ export default function OrderTracking({ initialOrderId, onClose }) {
             </button>
           </div>
 
+          {/* New: Customer Loyalty Card */}
+          {customerStats && (
+            <div className="bg-gradient-to-br from-green-600 to-green-700 p-8 rounded-[2rem] text-white shadow-xl shadow-green-200 animate-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">Loyalty Rewards</h3>
+                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Member: {customerStats.phone}</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
+                  <User className="w-6 h-6" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">Total Points</p>
+                  <p className="text-2xl font-black">⭐ {customerStats.loyaltyPoints || 0}</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">Orders</p>
+                  <p className="text-2xl font-black">{customerStats.orderCount || 0}</p>
+                </div>
+              </div>
+              <p className="mt-6 text-center text-[10px] font-bold uppercase tracking-widest text-white/40">Points earned based on your purchase history</p>
+            </div>
+          )}
+
           {/* Results Area */}
           <div className="space-y-6">
             {!searched && (
@@ -141,10 +230,46 @@ export default function OrderTracking({ initialOrderId, onClose }) {
                           <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center">
                             <Package className="w-5 h-5 text-gray-400" />
                           </div>
-                          <div>
-                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">Order ID</p>
-                            <h4 className="text-lg font-black text-gray-900">#JM-{order.id.toString().slice(-6)}</h4>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">Order ID</p>
+                                <h4 className="text-lg font-black text-gray-900">#JM-{order.id.toString().slice(-6)}</h4>
+                              </div>
+                              {order.status === 'pending' && canCancel(order.timestamp) && (
+                                <button 
+                                  onClick={() => handleCancelOrder(order.id)}
+                                  className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 transition-colors flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" /> Cancel Order
+                                </button>
+                              )}
+                            </div>
                           </div>
+                        </div>
+
+                        {/* New: Countdown Timer & Driver Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {order.status === 'completed' && timeLeft[order.id] && (
+                            <div className="bg-green-50/50 p-4 rounded-[1.5rem] border border-green-100 animate-pulse">
+                              <p className="text-[10px] text-green-600 font-black uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <Clock className="w-3 h-3" /> Estimated Arrival
+                              </p>
+                              <p className="text-xl font-black text-green-700 font-mono tracking-tighter">{timeLeft[order.id]}</p>
+                            </div>
+                          )}
+                          
+                          {order.driver && (
+                            <div className="bg-blue-50/50 p-4 rounded-[1.5rem] border border-blue-100">
+                              <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <User className="w-3 h-3" /> Delivery Boy
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-black text-gray-800">{order.driver.name}</p>
+                                <a href={`tel:${order.driver.phone}`} className="text-[10px] font-black text-blue-600 hover:underline">{order.driver.phone}</a>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">

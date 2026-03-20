@@ -195,7 +195,10 @@ export default function App() {
         
         if (data.status === 'completed') {
           const hours = prompt('Estimated delivery in (hours):', '2')
-          if (hours) updateData.deliveryMessage = `Your order will be delivered within ${hours} hour(s).`
+          if (hours) {
+            updateData.deliveryHours = parseInt(hours)
+            updateData.deliveryMessage = `Your order will be delivered within ${hours} hour(s).`
+          }
         } else if (data.status === 'rejected') {
           const reason = prompt('Reason for rejection:', 'Out of stock / Technical issue')
           if (reason) updateData.rejectionReason = reason
@@ -267,7 +270,7 @@ export default function App() {
       // Attempt to save order record in GitHub Backend (Requires Token)
       // Since public users don't have tokens, this will fail.
       // We wrap it in a try-catch to allow the WhatsApp redirect even if saving fails.
-      await apiFetch('/orders', {
+      const result = await apiFetch('/orders', {
         method: 'POST',
         body: JSON.stringify({ 
           customer: customerInfo,
@@ -283,11 +286,12 @@ export default function App() {
         })
       }).catch(err => {
         console.warn('[ORDER] Could not save record to GitHub (Public access)', err.message);
+        return { success: false };
         // We continue anyway so the customer can still order via WhatsApp
       })
 
       setCart({})
-      if (result.order) {
+      if (result && result.order) {
         setTrackingOrderId(`JM-${result.order.id.toString().slice(-6)}`)
         setTrackingOpen(true)
       }

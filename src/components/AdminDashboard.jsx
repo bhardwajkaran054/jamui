@@ -63,6 +63,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const [stockLogs, setStockLogs] = useState([])
   const [notices, setNotices] = useState({ text: '', active: false })
   const [deliveryZones, setDeliveryZones] = useState([])
+  const [drivers, setDrivers] = useState([])
 
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders)
@@ -71,7 +72,71 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     if (activeTab === 'stock-logs') fetchStockLogs()
     if (activeTab === 'notices') fetchNotices()
     if (activeTab === 'delivery-zones') fetchDeliveryZones()
+    if (activeTab === 'drivers') fetchDrivers()
   }, [initialOrders, activeTab])
+
+  const fetchDrivers = async () => {
+    try {
+      setLoading(true)
+      const data = await apiFetch('/drivers')
+      setDrivers(data)
+    } catch (err) {
+      console.error('Failed to fetch drivers:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddDriver = async () => {
+    const name = prompt('Enter driver name:')
+    if (!name) return
+    const phone = prompt('Enter driver phone number:')
+    if (!phone) return
+    
+    try {
+      await apiFetch('/drivers', {
+        method: 'POST',
+        body: JSON.stringify({ name, phone, status: 'available' })
+      })
+      fetchDrivers()
+    } catch (err) {
+      console.error('Failed to add driver:', err)
+    }
+  }
+
+  const handleDeleteDriver = async (id) => {
+    if (!confirm('Delete this driver?')) return
+    try {
+      await apiFetch(`/drivers/${id}`, { method: 'DELETE' })
+      fetchDrivers()
+    } catch (err) {
+      console.error('Failed to delete driver:', err)
+    }
+  }
+
+  const handleAssignDriver = async (orderId) => {
+    if (drivers.length === 0) {
+      alert('Please add drivers first in the "Drivers" tab.')
+      return
+    }
+    const driverOptions = drivers.map((d, i) => `${i + 1}. ${d.name} (${d.phone})`).join('\n')
+    const choice = prompt(`Select a driver to assign:\n${driverOptions}\n\nEnter the number:`)
+    if (!choice) return
+    
+    const driverIndex = parseInt(choice) - 1
+    if (drivers[driverIndex]) {
+      try {
+        await apiFetch(`/orders/${orderId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ driver: drivers[driverIndex] })
+        })
+        fetchOrders()
+        alert('Driver assigned successfully!')
+      } catch (err) {
+        console.error('Failed to assign driver:', err)
+      }
+    }
+  }
 
   const fetchCustomers = async () => {
     try {
@@ -464,6 +529,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
             { id: 'delivery-zones', label: 'Delivery Zones', icon: ShoppingBag },
             { id: 'notices', label: 'Notice Board', icon: MessageSquare },
             { id: 'stock-logs', label: 'Stock History', icon: Clock },
+            { id: 'drivers', label: 'Drivers', icon: User },
             { id: 'alerts', label: 'Stock Alerts', icon: Bell, count: lowStockItems.length }
           ].map(tab => (
             <button
@@ -1153,6 +1219,48 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                   >
                     <Trash2 className="w-6 h-6" />
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : activeTab === 'drivers' ? (
+          <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500">
+            <header className="flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-black text-gray-900 tracking-tight">Delivery Drivers</h1>
+                <p className="text-gray-500 font-medium mt-1">Manage your delivery staff</p>
+              </div>
+              <button 
+                onClick={handleAddDriver}
+                className="bg-blue-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-blue-200"
+              >
+                + Add Driver
+              </button>
+            </header>
+
+            <div className="grid gap-6">
+              {drivers.map(driver => (
+                <div key={driver.id} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-xl transition-all">
+                  <div className="flex items-center gap-6">
+                    <div className="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center">
+                      <User className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-black text-gray-900">{driver.name}</h4>
+                      <p className="text-sm text-gray-500 font-bold">{driver.phone}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-xs font-black uppercase tracking-widest border border-green-100">
+                      {driver.status}
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteDriver(driver.id)}
+                      className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                    >
+                      <Trash2 className="w-6 h-6" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
