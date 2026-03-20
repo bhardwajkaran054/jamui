@@ -416,7 +416,15 @@ export default function App() {
       return { success: true, order: localOrder };
     } catch (err) {
       console.error('[CRITICAL ORDER ERROR]:', err.message);
-      showNotification('Checkout failed. Please try again.', 'error');
+      
+      let userMsg = 'Checkout failed. Please try again.';
+      if (err.message.includes('session has expired')) {
+        userMsg = 'Admin session expired. Please log in again from the dashboard.';
+      } else if (err.message.includes('GitHub Token required')) {
+        userMsg = 'Missing admin permissions. Please log in to place orders.';
+      }
+
+      showNotification(userMsg, 'error');
       return { success: false };
     }
   }

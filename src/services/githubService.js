@@ -158,6 +158,11 @@ export const updateDb = async (newData) => {
   let finalPath = DB_PATH;
 
   const tryGetSha = async (path, useToken = true) => {
+    // Re-check if token has been blacklisted in this execution
+    if (useToken && typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+      return null;
+    }
+
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
     if (useToken && token) headers['Authorization'] = `token ${token}`;
     
@@ -170,6 +175,7 @@ export const updateDb = async (newData) => {
 
     if (response.status === 401 && useToken) {
       clearBadToken(token);
+      return null;
     }
 
     if (response.ok) {
@@ -183,6 +189,12 @@ export const updateDb = async (newData) => {
     // Try primary path with token
     sha = await tryGetSha(DB_PATH, true);
     
+    // DECISIVE FIX: If we just cleared the token, STOP NOW. 
+    // Don't try public/root paths as we already know the session is compromised.
+    if (typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
     // If failed, try primary path without token
     if (!sha) {
       sha = await tryGetSha(DB_PATH, false);
@@ -192,6 +204,11 @@ export const updateDb = async (newData) => {
     if (!sha && DB_PATH.includes('/')) {
       const rootPath = DB_PATH.split('/').pop();
       sha = await tryGetSha(rootPath, true);
+      
+      if (typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
       if (sha) finalPath = rootPath;
       else {
         sha = await tryGetSha(rootPath, false);
@@ -203,6 +220,8 @@ export const updateDb = async (newData) => {
       throw new Error(`Could not find database file at ${DB_PATH} or ${DB_PATH.split('/').pop()} in repository ${REPO_OWNER}/${REPO_NAME}. Please verify the repository path and token permissions.`);
     }
   } catch (err) {
+    // If it's our session expired error, re-throw it directly
+    if (err.message.includes('session has expired')) throw err;
     throw new Error(`Failed to get database file info: ${err.message}`);
   }
 
@@ -217,6 +236,11 @@ export const updateDb = async (newData) => {
     binaryString += String.fromCharCode(bytes[i]);
   }
   const content = btoa(binaryString);
+
+  // FINAL CHECK before PUT
+  if (typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
 
   const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${finalPath}`, {
     method: 'PUT',
@@ -236,6 +260,7 @@ export const updateDb = async (newData) => {
   if (!updateResponse.ok) {
     if (updateResponse.status === 401) {
       clearBadToken(token);
+      throw new Error('Your session has expired. Please log in again.');
     }
     const error = await updateResponse.json().catch(() => ({ message: 'Unknown error' }));
     throw new Error(`Failed to update database on GitHub: ${error.message}`);
