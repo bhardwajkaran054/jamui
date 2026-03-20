@@ -88,11 +88,13 @@
     {
       "id": 11,
       "name": "Aashirvaad Atta 5 kg",
-      "price": 235,
+      "price": 240,
       "unit": "5kg",
       "category": "Atta & Sugar",
       "emoji": "🌿",
-      "stock": 12
+      "stock": 12,
+      "useImage": false,
+      "image": ""
     },
     {
       "id": 12,
