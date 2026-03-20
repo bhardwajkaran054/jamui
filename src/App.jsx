@@ -94,7 +94,19 @@ export default function App() {
     try {
       setLoading(true)
       const data = await apiFetch('/products')
-      setProducts(data)
+      
+      let productData = data
+      // Check for settings wrapped in data (GitHub Backend mode)
+      if (data && data.products) {
+        productData = data.products
+        if (data.settings?.publicOrderToken) {
+          import('./services/githubService').then(service => {
+            service.setPublicOrderToken(data.settings.publicOrderToken)
+          })
+        }
+      }
+      
+      setProducts(productData)
     } catch (err) {
       console.error('[API ERROR] Products fetch failed:', err.message)
       showNotification(`API Error: ${err.message}`, 'error')

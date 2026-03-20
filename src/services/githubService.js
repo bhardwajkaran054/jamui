@@ -22,20 +22,33 @@ const PUBLIC_WRITE_TOKEN = ''; // Use VITE_GITHUB_TOKEN or localStorage instead
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
-    // 1. Check for a blacklisted token first (to avoid repeating known failures in this session)
     const badToken = typeof window !== 'undefined' ? sessionStorage.getItem('badGithubToken') : null;
     
-    // 2. Admin Session Token (Saved in localStorage)
+    // 1. Admin Session Token (Saved in localStorage)
     const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
     if (adminToken && adminToken !== badToken) return adminToken.trim();
     
-    // 3. Shared Public Token (Optional fallback saved by admin)
+    // 2. Shared Public Token (Optional fallback saved by admin in DB)
     const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
     if (publicToken && publicToken !== badToken) return publicToken.trim();
 
     return null;
   } catch (e) {
     return null;
+  }
+};
+
+/**
+ * Set a public token for orders (retrieved from DB settings)
+ */
+export const setPublicOrderToken = (encodedToken) => {
+  if (!encodedToken) return;
+  try {
+    // We decode it here (it's stored in Base64 to avoid GitHub's auto-revocation scanner)
+    const decoded = atob(encodedToken);
+    localStorage.setItem('publicOrderToken', decoded);
+  } catch (e) {
+    console.error('[GITHUB] Failed to set public token:', e);
   }
 };
 

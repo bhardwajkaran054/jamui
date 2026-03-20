@@ -30,7 +30,23 @@ export const apiFetch = async (endpoint, options = {}) => {
   const db = await fetchDb();
 
   if (endpoint === '/products' && !options.method) {
-    return db.products;
+    // Inject settings into product fetch for initial app setup
+    return { 
+      products: db.products, 
+      settings: db.settings || {} 
+    };
+  }
+
+  // New Endpoint: Settings
+  if (endpoint === '/settings' && !options.method) {
+    return db.settings || {};
+  }
+
+  if (endpoint === '/settings' && options.method === 'POST') {
+    const newSettings = JSON.parse(options.body);
+    db.settings = { ...(db.settings || {}), ...newSettings };
+    await updateDb(db);
+    return { success: true };
   }
 
   if (endpoint === '/categories' && !options.method) {
