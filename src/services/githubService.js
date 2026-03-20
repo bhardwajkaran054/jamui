@@ -8,6 +8,12 @@ const REPO_OWNER = 'bhardwajkaran054';
 const REPO_NAME = 'jamui';
 const DB_PATH = 'public/db.json';
 
+// Simple Promise-based cache for concurrent calls
+let activeFetchPromise = null;
+let lastFetchTime = 0;
+let cachedDb = null;
+const CACHE_TTL = 5000; // 5 seconds (Reduced from 30s or other for better real-time feel)
+
 // FALLBACK TOKEN: This is a restricted, public-only token for saving orders.
 // In a real production app, this should be an edge function/proxy.
 // For this Git-as-a-Backend setup, we use it for mobile/private window writes.

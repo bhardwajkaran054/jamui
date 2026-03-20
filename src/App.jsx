@@ -57,6 +57,13 @@ export default function App() {
     fetchDeliveryZones()
     if (token) setIsAdmin(true)
 
+    // Polling for fresh data every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchProducts()
+      fetchOrders()
+      fetchNotice()
+    }, 30000)
+
     // Secret /admin path detection
     const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
     if (isPathAdmin) {
@@ -70,6 +77,8 @@ export default function App() {
       setShowSecret(false)
       setShowLogin(false)
     }
+
+    return () => clearInterval(pollInterval)
   }, [token, passedSecret])
 
   const showNotification = (message, type = 'success') => {
