@@ -133,15 +133,6 @@
       "stock": 7
     },
     {
-      "name": "Sabzi",
-      "price": 10,
-      "unit": "KG",
-      "category": "Atta & Sugar",
-      "emoji": "🫘",
-      "stock": 10,
-      "id": 16
-    },
-    {
       "name": "Sweet",
       "price": 19,
       "unit": "1KG",
@@ -425,6 +416,15 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773980491780,
+      "productId": 16,
+      "productName": "Sabzi",
+      "oldStock": 10,
+      "newStock": 0,
+      "reason": "Product Deleted",
+      "timestamp": "2026-03-20T04:21:31.780Z"
+    },
     {
       "id": 1773976562130,
       "productId": 19,
