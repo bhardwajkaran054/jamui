@@ -53,3 +53,9 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          preview: false
+          # Explicitly set the domain if the action supports it (some versions do via url output)
+          # but usually it's picked up from the environment url above.
+

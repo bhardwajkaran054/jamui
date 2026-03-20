@@ -1,7 +1,7 @@
 # Jamui Super Mart 🛒
 
-[![Live Site](https://img.shields.io/badge/Live-jamuisupermart.in-green?style=flat-square&logo=vercel)](https://jamuisupermart.in)
-[![GitHub Pages](https://img.shields.io/badge/Hosted-GitHub%20Pages-blue?style=flat-square&logo=github)](https://bhardwajkaran054.github.io/jamui/)
+[![Live Site](https://img.shields.io/badge/Live-jamuisupermart.in-green?style=flat-square&logo=github)](https://jamuisupermart.in)
+[![GitHub Pages](https://img.shields.io/badge/Hosted-GitHub%20Pages-blue?style=flat-square&logo=github)](https://jamuisupermart.in)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite)](https://vitejs.dev)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
