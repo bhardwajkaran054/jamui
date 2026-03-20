@@ -213,6 +213,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const totalProducts = products.length
   const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0)
   const totalRevenue = orders.filter(o => o.status === 'completed').reduce((acc, o) => acc + o.total, 0)
+  const uniqueCustomersCount = new Set(orders.filter(o => o.customer && o.customer.phone).map(o => o.customer.phone)).size
 
   const generatePDFInvoice = (order) => {
     // Generate unique content for the new window
@@ -584,10 +585,10 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2">Unique Customers</p>
                 <p className="text-4xl font-black text-gray-900">
-                  {new Set(orders.map(o => o.id.toString().slice(0, 8))).size}
+                  {uniqueCustomersCount}
                 </p>
                 <div className="mt-4 flex items-center gap-2 text-[10px] text-purple-600 font-black uppercase tracking-widest">
-                  <User className="w-3 h-3" /> Estim. Reach
+                  <User className="w-3 h-3" /> From History
                 </div>
               </div>
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">

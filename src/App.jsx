@@ -60,8 +60,34 @@ export default function App() {
     if (token) setIsAdmin(true)
 
     // Polling for new orders (every 30 seconds)
-    const pollInterval = setInterval(() => {
-      fetchOrders()
+    const pollInterval = setInterval(async () => {
+      const latestOrders = await fetchOrders()
+      
+      // Admin Notification Logic
+      if (token && latestOrders && latestOrders.length > 0) {
+        const storedOrders = JSON.parse(localStorage.getItem('adminKnownOrders') || '[]')
+        const newOrders = latestOrders.filter(o => !storedOrders.includes(o.id))
+        
+        if (newOrders.length > 0) {
+          // Play sound alert
+          soundService.play('order')
+          
+          // Browser notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Jamui Super Mart Admin', {
+              body: `You have ${newOrders.length} new order(s) waiting for approval!`,
+              icon: '/favicon.svg'
+            })
+          }
+          
+          // Show toast
+          showNotification(`Received ${newOrders.length} new order(s)!`, 'success')
+          
+          // Update known orders
+          const updatedKnown = [...new Set([...storedOrders, ...latestOrders.map(o => o.id)])]
+          localStorage.setItem('adminKnownOrders', JSON.stringify(updatedKnown))
+        }
+      }
     }, 30000)
 
     // Secret /admin path detection
@@ -250,6 +276,9 @@ export default function App() {
   const handleLogin = (newToken) => {
     setToken(newToken)
     localStorage.setItem('githubToken', newToken)
+    // Initialize known orders on login so we don't notify for old orders
+    const knownIds = orders.map(o => o.id)
+    localStorage.setItem('adminKnownOrders', JSON.stringify(knownIds))
     setIsAdmin(true)
     setShowLogin(false)
     showNotification('Welcome back, Admin!')

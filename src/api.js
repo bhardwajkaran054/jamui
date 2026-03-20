@@ -248,12 +248,12 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint === '/customers' && !options.method) {
     // Generate customer list from orders
-    const customers = {};
+    const customersMap = {};
     (db.orders || []).forEach(order => {
       if (order.customer && order.customer.phone) {
         const phone = order.customer.phone;
-        if (!customers[phone]) {
-          customers[phone] = {
+        if (!customersMap[phone]) {
+          customersMap[phone] = {
             name: order.customer.name,
             phone: phone,
             totalSpent: 0,
@@ -263,16 +263,16 @@ export const apiFetch = async (endpoint, options = {}) => {
           };
         }
         if (order.status === 'completed') {
-          customers[phone].totalSpent += order.total;
-          customers[phone].loyaltyPoints += Math.floor(order.total / 100);
+          customersMap[phone].totalSpent += order.total;
+          customersMap[phone].loyaltyPoints += Math.floor(order.total / 100);
         }
-        customers[phone].orderCount += 1;
-        if (!customers[phone].lastOrder || new Date(order.timestamp) > new Date(customers[phone].lastOrder)) {
-          customers[phone].lastOrder = order.timestamp;
+        customersMap[phone].orderCount += 1;
+        if (!customersMap[phone].lastOrder || new Date(order.timestamp) > new Date(customersMap[phone].lastOrder)) {
+          customersMap[phone].lastOrder = order.timestamp;
         }
       }
     });
-    return Object.values(customers);
+    return Object.values(customersMap);
   }
 
   if (endpoint.startsWith('/orders/') && options.method === 'DELETE') {
