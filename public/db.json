@@ -7,7 +7,7 @@
       "unit": "26kg",
       "category": "Rice",
       "emoji": "Kasturi Usna 26kg",
-      "stock": 10,
+      "stock": 8,
       "useImage": false,
       "image": ""
     },
@@ -18,7 +18,7 @@
       "unit": "1kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 50
+      "stock": 47
     },
     {
       "id": 4,
@@ -27,7 +27,7 @@
       "unit": "26kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 8
+      "stock": 5
     },
     {
       "id": 5,
@@ -36,16 +36,18 @@
       "unit": "1kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 40
+      "stock": 38
     },
     {
       "id": 6,
       "name": "Refined Oil 1 Liter",
-      "price": 135,
+      "price": 140,
       "unit": "1L",
       "category": "Oil",
       "emoji": "🫙",
-      "stock": 30
+      "stock": 30,
+      "useImage": false,
+      "image": ""
     },
     {
       "id": 7,
@@ -86,11 +88,13 @@
     {
       "id": 11,
       "name": "Aashirvaad Atta 5 kg",
-      "price": 235,
+      "price": 240,
       "unit": "5kg",
       "category": "Atta & Sugar",
       "emoji": "🌿",
-      "stock": 12
+      "stock": 12,
+      "useImage": false,
+      "image": ""
     },
     {
       "id": 12,
@@ -152,13 +156,13 @@
       "unit": "KG",
       "category": "Veg",
       "emoji": "🥔",
-      "stock": 89,
+      "stock": 88,
       "id": 18
     },
     {
-      "name": "test",
-      "price": 0,
-      "unit": "GM",
+      "name": "BASMATI RICE INDIA GATE",
+      "price": 120,
+      "unit": "KG",
       "category": "Rice",
       "emoji": "🫘",
       "image": "https://media.gettyimages.com/id/1912193566/photo/full-frame-macro-shot-of-brown-rice-background-food-texture.jpg?s=612x612&w=0&k=20&c=nvV_LCnxO58IaJzxfJ3QDd201L9TAUMokIwK3amaAtk=",
@@ -186,6 +190,169 @@
     "Veg"
   ],
   "orders": [
+    {
+      "id": 1773985614330,
+      "items": [
+        {
+          "id": 15,
+          "name": "Atta 26 kg",
+          "price": 850,
+          "quantity": 1,
+          "emoji": "🌿",
+          "category": "Atta & Sugar"
+        },
+        {
+          "id": 18,
+          "name": "Allu",
+          "price": 10,
+          "quantity": 1,
+          "emoji": "🥔",
+          "category": "Veg"
+        },
+        {
+          "id": 19,
+          "name": "BASMATI RICE INDIA GATE",
+          "price": 120,
+          "quantity": 1,
+          "emoji": "🫘",
+          "category": "Rice"
+        },
+        {
+          "id": 20,
+          "name": "Milk",
+          "price": 50,
+          "quantity": 1,
+          "emoji": "🫘",
+          "category": "Atta & Sugar"
+        }
+      ],
+      "total": 1080,
+      "customer": {
+        "name": "Monesh Ram",
+        "phone": "9999999999"
+      },
+      "timestamp": "2026-03-20T05:46:54.330Z",
+      "status": "pending"
+    },
+    {
+      "id": 1773980379419,
+      "items": [
+        {
+          "id": 1,
+          "name": "Kasturi Rice 26 kg",
+          "price": 830,
+          "quantity": 1,
+          "emoji": "Kasturi Usna 26kg",
+          "category": "Rice"
+        },
+        {
+          "id": 2,
+          "name": "Kasturi Rice 1 kg",
+          "price": 35,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 4,
+          "name": "Fortune Mini Kit 26 kg",
+          "price": 1430,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 5,
+          "name": "Fortune Mini Kit 1 kg",
+          "price": 58,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        }
+      ],
+      "total": 2353,
+      "customer": {
+        "name": "Ramu",
+        "phone": "1234567890"
+      },
+      "timestamp": "2026-03-20T04:19:39.419Z",
+      "status": "completed",
+      "rejectReason": "Item out of stock",
+      "estimatedDelivery": "30-45 mins"
+    },
+    {
+      "id": 1773973604576,
+      "items": [
+        {
+          "id": 1,
+          "name": "Kasturi Rice 26 kg",
+          "price": 830,
+          "quantity": 1,
+          "emoji": "Kasturi Usna 26kg",
+          "category": "Rice"
+        },
+        {
+          "id": 2,
+          "name": "Kasturi Rice 1 kg",
+          "price": 35,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 4,
+          "name": "Fortune Mini Kit 26 kg",
+          "price": 1430,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        }
+      ],
+      "total": 2395,
+      "customer": {
+        "name": "Monesh Ram",
+        "phone": "9999999999"
+      },
+      "timestamp": "2026-03-20T02:26:45.227Z",
+      "status": "completed",
+      "estimatedDelivery": "30-45 mins"
+    },
+    {
+      "id": 1773973356611,
+      "items": [
+        {
+          "id": 2,
+          "name": "Kasturi Rice 1 kg",
+          "price": 35,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 4,
+          "name": "Fortune Mini Kit 26 kg",
+          "price": 1430,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 5,
+          "name": "Fortune Mini Kit 1 kg",
+          "price": 58,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        }
+      ],
+      "total": 1523,
+      "customer": {
+        "name": "Monesh Ram",
+        "phone": "9999999999"
+      },
+      "timestamp": "2026-03-20T02:22:37.503Z",
+      "status": "completed"
+    },
     {
       "id": 1773969428643,
       "items": [
@@ -248,7 +415,8 @@
         "phone": "9999999999"
       },
       "timestamp": "2026-03-20T01:11:05.245Z",
-      "status": "pending"
+      "status": "completed",
+      "estimatedDelivery": "30-45 mins"
     },
     {
       "id": 1773933495583,
@@ -264,7 +432,8 @@
       ],
       "total": 10,
       "timestamp": "2026-03-19T15:18:15.583Z",
-      "status": "pending"
+      "status": "completed",
+      "estimatedDelivery": "30-45 mins"
     },
     {
       "id": 1773922621250,
@@ -298,10 +467,127 @@
     }
   ],
   "notices": {
-    "text": "🚚 Free delivery on orders above ₹500! Happy shopping!\nWe have All Grocery Items Available 🔥\nOnly Some of Them are Shown here.\nJust Send the Image of groceries list ❤️",
+    "text": "🚚 Free delivery on orders above ₹500! Happy shopping!\n\n\n----We have All Grocery Items Available 🔥\n\n--------,,,,,,,,,,,,,,\nOnly Some of Them are Shown here.\n\n------\n------Just Send the Image of groceries list ❤️",
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773982186005.8462,
+      "productId": 5,
+      "productName": "Fortune Mini Kit 1 kg",
+      "oldStock": 39,
+      "newStock": 38,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.005Z"
+    },
+    {
+      "id": 1773982186004.833,
+      "productId": 4,
+      "productName": "Fortune Mini Kit 26 kg",
+      "oldStock": 6,
+      "newStock": 5,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.004Z"
+    },
+    {
+      "id": 1773982186004.0662,
+      "productId": 2,
+      "productName": "Kasturi Rice 1 kg",
+      "oldStock": 48,
+      "newStock": 47,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.004Z"
+    },
+    {
+      "id": 1773982186004.931,
+      "productId": 1,
+      "productName": "Kasturi Rice 26 kg",
+      "oldStock": 9,
+      "newStock": 8,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.004Z"
+    },
+    {
+      "id": 1773976562130,
+      "productId": 19,
+      "productName": "BASMATI RICE INDIA GATE",
+      "oldStock": 7,
+      "newStock": 9,
+      "reason": "Manual Admin Update",
+      "timestamp": "2026-03-20T03:16:02.130Z"
+    },
+    {
+      "id": 1773976487082.012,
+      "productId": 18,
+      "productName": "Allu",
+      "oldStock": 89,
+      "newStock": 88,
+      "reason": "Order Approved (#JM-495583)",
+      "timestamp": "2026-03-20T03:14:47.082Z"
+    },
+    {
+      "id": 1773976460640.6084,
+      "productId": 19,
+      "productName": "test",
+      "oldStock": 9,
+      "newStock": 7,
+      "reason": "Order Approved (#JM-065245)",
+      "timestamp": "2026-03-20T03:14:20.640Z"
+    },
+    {
+      "id": 1773974274577.3718,
+      "productId": 4,
+      "productName": "Fortune Mini Kit 26 kg",
+      "oldStock": 7,
+      "newStock": 6,
+      "reason": "Order Approved (#JM-604576)",
+      "timestamp": "2026-03-20T02:37:54.577Z"
+    },
+    {
+      "id": 1773974274577.2576,
+      "productId": 2,
+      "productName": "Kasturi Rice 1 kg",
+      "oldStock": 49,
+      "newStock": 48,
+      "reason": "Order Approved (#JM-604576)",
+      "timestamp": "2026-03-20T02:37:54.577Z"
+    },
+    {
+      "id": 1773974274577.3972,
+      "productId": 1,
+      "productName": "Kasturi Rice 26 kg",
+      "oldStock": 10,
+      "newStock": 9,
+      "reason": "Order Approved (#JM-604576)",
+      "timestamp": "2026-03-20T02:37:54.577Z"
+    },
+    {
+      "id": 1773973409102.3408,
+      "productId": 5,
+      "productName": "Fortune Mini Kit 1 kg",
+      "oldStock": 40,
+      "newStock": 39,
+      "reason": "Order Approved (#JM-356611)",
+      "timestamp": "2026-03-20T02:23:29.102Z"
+    },
+    {
+      "id": 1773973409102.2522,
+      "productId": 4,
+      "productName": "Fortune Mini Kit 26 kg",
+      "oldStock": 8,
+      "newStock": 7,
+      "reason": "Order Approved (#JM-356611)",
+      "timestamp": "2026-03-20T02:23:29.102Z"
+    },
+    {
+      "id": 1773973409102.385,
+      "productId": 2,
+      "productName": "Kasturi Rice 1 kg",
+      "oldStock": 50,
+      "newStock": 49,
+      "reason": "Order Approved (#JM-356611)",
+      "timestamp": "2026-03-20T02:23:29.102Z"
+    },
     {
       "id": 1773969453981.7336,
       "productId": 20,

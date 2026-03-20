@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
-import { Bell, ShoppingCart, User, ShieldCheck } from 'lucide-react'
+import { Bell, ShoppingCart, User, ShieldCheck, Search } from 'lucide-react'
 
-export default function Header({ cartCount, onCartClick, isAdmin, notice }) {
+export default function Header({ cartCount, onCartClick, onTrackClick, isAdmin, notice }) {
   return (
     <div className="sticky top-0 z-40">
       {notice?.active && notice?.text && (
@@ -29,6 +29,14 @@ export default function Header({ cartCount, onCartClick, isAdmin, notice }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={onTrackClick}
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border border-gray-100 px-4 sm:px-5 py-3 rounded-2xl transition-all shadow-sm active:scale-95 text-gray-600 hover:bg-gray-50"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden xs:inline">Track Order</span>
+            </button>
+
             {isAdmin && (
               <button
                 onClick={() => window.location.href = '/admin'}

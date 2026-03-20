@@ -8,84 +8,167 @@ const REPO_OWNER = 'bhardwajkaran054';
 const REPO_NAME = 'jamui';
 const DB_PATH = 'public/db.json';
 
+// Helper to clear invalid tokens from storage
+const clearBadToken = (token) => {
+  if (!token || typeof window === 'undefined') return;
+  
+  const badToken = token.trim();
+  console.error('[GITHUB] Token is invalid. Clearing session.');
+  
+  // Blacklist it for the rest of this session
+  sessionStorage.setItem('badGithubToken', badToken);
+  
+  // Remove from persistent storage
+  if (localStorage.getItem('githubToken') === badToken) {
+    localStorage.removeItem('githubToken');
+  }
+  if (localStorage.getItem('publicOrderToken') === badToken) {
+    localStorage.removeItem('publicOrderToken');
+  }
+  
+  // Notify UI
+  window.dispatchEvent(new CustomEvent('github-token-cleared'));
+};
+
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
-    return localStorage.getItem('githubToken') || import.meta.env.VITE_GITHUB_TOKEN;
+    // Check if we've already marked this token as invalid in this session
+    const badToken = typeof window !== 'undefined' ? sessionStorage.getItem('badGithubToken') : null;
+
+    // Helper to check if token is blacklisted
+    const isBad = (t) => t && badToken && t.trim() === badToken;
+
+    // 1. Admin Session Token (Most reliable)
+    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
+    if (adminToken && !isBad(adminToken)) return adminToken.trim();
+    
+    // 2. Shared Public Token (Saved when admin first logs in on this app instance)
+    const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
+    if (publicToken && !isBad(publicToken)) return publicToken.trim();
+
+    // 3. Environment Variable (VITE_GITHUB_TOKEN)
+    const envToken = import.meta.env.VITE_GITHUB_TOKEN;
+    if (envToken && !isBad(envToken)) return envToken.trim();
+
+    return null;
   } catch (e) {
-    return import.meta.env.VITE_GITHUB_TOKEN;
+    return null;
   }
 };
+
+// Simple Promise-based cache for concurrent calls
+let activeFetchPromise = null;
+let lastFetchTime = 0;
+let cachedDb = null;
+const CACHE_TTL = 2000; // 2 seconds
 
 /**
  * Fetches the current database content from GitHub
  */
 export const fetchDb = async () => {
-  const token = getToken();
-  
-  const tryFetch = async (path, useToken = true) => {
-    const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    // Use 'token' prefix for classic PATs (ghp_...)
-    if (useToken && token) headers['Authorization'] = `token ${token}`;
-    
-    try {
-      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`, { headers });
-      
-      if (response.status === 401) {
-        console.warn(`[GITHUB] 401 Unauthorized for ${path}. The token might be invalid or expired.`);
-        // If the token in localStorage is invalid, we should probably remove it
-        if (useToken && token === localStorage.getItem('githubToken')) {
-          console.warn('[GITHUB] Removing invalid token from localStorage');
-          localStorage.removeItem('githubToken');
-        }
-        return null;
-      }
+  // 0. Cache Check: If a fetch is already in progress, use its promise
+  if (activeFetchPromise) return activeFetchPromise;
 
-      if (response.ok) {
-        const fileData = await response.json();
-        const binaryString = atob(fileData.content.replace(/\n/g, ''));
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+  // 1. Cache Check: If we have a fresh cached version, use it
+  const now = Date.now();
+  if (cachedDb && now - lastFetchTime < CACHE_TTL) {
+    return cachedDb;
+  }
+
+  // Create a new fetch promise
+  activeFetchPromise = (async () => {
+    const token = getToken();
+    
+    // 1. STRATEGY: Try Raw GitHub Content FIRST (Fastest, no rate limits, public-safe)
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
+      const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
+      if (rawResponse.ok) {
+        const data = await rawResponse.json();
+        if (data && data.products) {
+          console.log('[GITHUB] Database loaded via Raw Content URL');
+          cachedDb = data;
+          lastFetchTime = Date.now();
+          return data;
         }
-        const decoded = new TextDecoder('utf-8').decode(bytes);
-        return JSON.parse(decoded);
       }
     } catch (err) {
-      console.warn(`[GITHUB] Fetch failed for ${path}:`, err.message);
+      console.warn('[GITHUB] Raw fetch fallback:', err.message);
     }
-    return null;
-  };
 
-  // 1. Try primary path with token
-  let data = await tryFetch(DB_PATH, true);
-  if (data) return data;
+    // 2. Fallback: REST API
+    const tryFetch = async (path, useToken = true) => {
+      // If we don't have a token and useToken is true, skip this attempt to save time/rate-limit
+      if (useToken && !token) return null;
 
-  // 2. Try root path with token
-  if (DB_PATH.includes('/')) {
-    data = await tryFetch(DB_PATH.split('/').pop(), true);
-    if (data) return data;
-  }
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
 
-  // 3. Try primary path without token
-  data = await tryFetch(DB_PATH, false);
-  if (data) return data;
+      if (useToken && token) {
+        headers['Authorization'] = `token ${token.trim()}`;
+      }
 
-  // 4. Fallback to raw content
-  try {
-    const response = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`);
-    if (response.ok) return await response.json();
-    
-    // Try raw root path
-    if (DB_PATH.includes('/')) {
-      const responseRoot = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH.split('/').pop()}?t=${Date.now()}`);
-      if (responseRoot.ok) return await responseRoot.json();
+      try {
+        // Use a unique query parameter for cache-busting
+        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
+        const response = await fetch(url, {
+          headers,
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
+
+          // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
+          if (response.status === 401 && useToken) {
+            clearBadToken(token);
+          }
+          return null;
+        }
+
+        if (response.ok) {
+          const fileData = await response.json();
+          const binaryString = atob(fileData.content.replace(/\n/g, ''));
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const decoded = new TextDecoder('utf-8').decode(bytes);
+          const parsed = JSON.parse(decoded);
+          cachedDb = parsed;
+          lastFetchTime = Date.now();
+          return parsed;
+        }
+      } catch (err) {
+        console.warn(`[GITHUB] Fetch failed for ${path}:`, err.message);
+      }
+      return null;
+    };
+
+    // 3. Fallback: REST API with token
+    if (token) {
+      const data = await tryFetch(DB_PATH, true);
+      if (data) return data;
     }
-  } catch (err) {
-    console.error('[GITHUB] Raw fallback failed:', err.message);
-  }
 
-  throw new Error('Failed to fetch database from GitHub. Please check your internet connection or repository settings.');
+    // 4. Final Fallback: REST API without token
+    const finalData = await tryFetch(DB_PATH, false);
+    if (finalData) return finalData;
+
+    // 5. Emergency Default
+    const defaultData = { products: [], orders: [], categories: [] };
+    cachedDb = defaultData;
+    lastFetchTime = Date.now();
+    return defaultData;
+  })().finally(() => {
+    activeFetchPromise = null;
+  });
+
+  return activeFetchPromise;
 };
 
 /**
@@ -96,16 +179,30 @@ export const updateDb = async (newData) => {
   if (!token) throw new Error('GitHub Token required for this action');
 
   // 1. Get the current file's SHA (required for updates)
-  // Try with token first, then without (if rate limit allows)
   let sha = null;
   let finalPath = DB_PATH;
 
   const tryGetSha = async (path, useToken = true) => {
+    // Re-check if token has been blacklisted in this execution
+    if (useToken && typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+      return null;
+    }
+
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (useToken) headers['Authorization'] = `token ${token}`;
+    if (useToken && token) headers['Authorization'] = `token ${token}`;
     
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { 
+      headers,
+      method: 'GET',
+      mode: 'cors'
+    });
+
+    if (response.status === 401 && useToken) {
+      clearBadToken(token);
+      return null;
+    }
+
     if (response.ok) {
       const data = await response.json();
       return data.sha;
@@ -117,6 +214,12 @@ export const updateDb = async (newData) => {
     // Try primary path with token
     sha = await tryGetSha(DB_PATH, true);
     
+    // DECISIVE FIX: If we just cleared the token, STOP NOW. 
+    // Don't try public/root paths as we already know the session is compromised.
+    if (typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
     // If failed, try primary path without token
     if (!sha) {
       sha = await tryGetSha(DB_PATH, false);
@@ -126,6 +229,11 @@ export const updateDb = async (newData) => {
     if (!sha && DB_PATH.includes('/')) {
       const rootPath = DB_PATH.split('/').pop();
       sha = await tryGetSha(rootPath, true);
+      
+      if (typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
       if (sha) finalPath = rootPath;
       else {
         sha = await tryGetSha(rootPath, false);
@@ -137,6 +245,8 @@ export const updateDb = async (newData) => {
       throw new Error(`Could not find database file at ${DB_PATH} or ${DB_PATH.split('/').pop()} in repository ${REPO_OWNER}/${REPO_NAME}. Please verify the repository path and token permissions.`);
     }
   } catch (err) {
+    // If it's our session expired error, re-throw it directly
+    if (err.message.includes('session has expired')) throw err;
     throw new Error(`Failed to get database file info: ${err.message}`);
   }
 
@@ -152,10 +262,15 @@ export const updateDb = async (newData) => {
   }
   const content = btoa(binaryString);
 
+  // FINAL CHECK before PUT
+  if (typeof window !== 'undefined' && sessionStorage.getItem('badGithubToken') === token.trim()) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
   const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${finalPath}`, {
     method: 'PUT',
     headers: { 
-      'Authorization': `token ${token}`,
+      'Authorization': `token ${token.trim()}`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
@@ -169,7 +284,8 @@ export const updateDb = async (newData) => {
 
   if (!updateResponse.ok) {
     if (updateResponse.status === 401) {
-      localStorage.removeItem('githubToken');
+      clearBadToken(token);
+      throw new Error('Your session has expired. Please log in again.');
     }
     const error = await updateResponse.json().catch(() => ({ message: 'Unknown error' }));
     throw new Error(`Failed to update database on GitHub: ${error.message}`);
@@ -186,7 +302,7 @@ export const validateToken = async (token) => {
     // 1. First, check if the token is valid by getting the authenticated user
     const userResponse = await fetch('https://api.github.com/user', {
       headers: { 
-        'Authorization': `token ${token}`,
+        'Authorization': `token ${token.trim()}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
@@ -205,7 +321,7 @@ export const validateToken = async (token) => {
     for (const owner of repoOwners) {
       const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${REPO_NAME}`, {
         headers: { 
-          'Authorization': `token ${token}`,
+          'Authorization': `token ${token.trim()}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });

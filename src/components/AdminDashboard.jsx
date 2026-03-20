@@ -23,7 +23,8 @@ import {
   Tag,
   Bell,
   Menu,
-  X
+  X,
+  Download
 } from 'lucide-react'
 import { apiFetch } from '../api'
 import {
@@ -64,6 +65,9 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const [notices, setNotices] = useState({ text: '', active: false })
   const [deliveryZones, setDeliveryZones] = useState([])
 
+  const [lastSync, setLastSync] = useState(new Date())
+  const [syncStatus, setSyncStatus] = useState('synced') // 'synced', 'syncing', 'error'
+
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders)
     if (activeTab === 'customers') fetchCustomers()
@@ -72,6 +76,14 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     if (activeTab === 'notices') fetchNotices()
     if (activeTab === 'delivery-zones') fetchDeliveryZones()
   }, [initialOrders, activeTab])
+
+  // Sync Timer for indicator
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLastSync(new Date())
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   const fetchCustomers = async () => {
     try {
@@ -211,7 +223,8 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const lowStockItems = products.filter(p => p.stock <= 5)
   const totalProducts = products.length
   const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0)
-  const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0)
+  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((acc, o) => acc + o.total, 0)
+  const uniqueCustomersCount = new Set(orders.filter(o => o.customer && o.customer.phone).map(o => o.customer.phone)).size
 
   const generatePDFInvoice = (order) => {
     // Generate unique content for the new window
@@ -347,6 +360,8 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
       message += `--------------------------\n`
       message += `*TOTAL AMOUNT: ₹${order.total}*\n`
       message += `--------------------------\n`
+      message += `*Live Tracking:* jamuisupermart.in/#/track/${order.id}\n`
+      message += `--------------------------\n`
       message += `_Please attach the PDF invoice you just saved._\n`
       message += `--------------------------\n`
       message += `Thank you for shopping with us!\n`
@@ -357,10 +372,41 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     }
   }
 
+  const exportToCSV = () => {
+    if (orders.length === 0) return;
+    
+    const headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Total Amount', 'Status', 'Items'];
+    const rows = orders.map(order => [
+      `JM-${order.id.toString().slice(-6)}`,
+      new Date(order.timestamp).toLocaleDateString(),
+      order.customer?.name || 'Guest',
+      order.customer?.phone || 'N/A',
+      order.total,
+      order.status,
+      order.items.map(i => `${i.name}(x${i.quantity})`).join('; ')
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `jamui_orders_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   // Enhanced Chart Data Preparation
   const categoryData = categories.filter(c => c !== 'All').map(cat => {
     const count = products.filter(p => p.category === cat).length
-    return { category: cat, count }
+    const total = orders.filter(o => o.items.some(i => i.category === cat) && o.status === 'completed').reduce((acc, o) => acc + o.total, 0)
+    return { category: cat, count, total }
   })
 
   // Sales Calendar Data (Revenue per day of current month)
@@ -520,13 +566,44 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
         <div className="lg:hidden flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight capitalize">{activeTab}</h1>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Admin Dashboard</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Admin Dashboard</p>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100">
+                <div className={`w-1 h-1 rounded-full ${syncStatus === 'synced' ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`} />
+                <span className="text-[8px] font-black text-green-600 uppercase">Live</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
               <User className="w-5 h-5 text-green-600" />
             </div>
           </div>
+        </div>
+
+        {/* Desktop Sync Indicator */}
+        <div className="hidden lg:flex absolute top-12 right-12 items-center gap-4 bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 z-10">
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${syncStatus === 'synced' ? 'text-green-600' : 'text-orange-600'}`}>
+                {syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...'}
+              </span>
+              <div className={`w-2 h-2 rounded-full ${syncStatus === 'synced' ? 'bg-green-500 shadow-lg shadow-green-200 animate-pulse' : 'bg-orange-500 animate-spin'}`} />
+            </div>
+            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Last Update: {lastSync.toLocaleTimeString()}</p>
+          </div>
+          <button 
+            onClick={async () => {
+              setSyncStatus('syncing');
+              await fetchOrders();
+              setLastSync(new Date());
+              setSyncStatus('synced');
+            }}
+            className="p-2 hover:bg-gray-50 rounded-xl transition-all active:scale-95 group"
+            title="Force Refresh"
+          >
+            <Activity className={`w-4 h-4 text-gray-400 group-hover:text-green-600 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {activeTab === 'analytics' ? (
@@ -550,10 +627,10 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2">Unique Customers</p>
                 <p className="text-4xl font-black text-gray-900">
-                  {new Set(orders.map(o => o.id.toString().slice(0, 8))).size}
+                  {uniqueCustomersCount}
                 </p>
                 <div className="mt-4 flex items-center gap-2 text-[10px] text-purple-600 font-black uppercase tracking-widest">
-                  <User className="w-3 h-3" /> Estim. Reach
+                  <User className="w-3 h-3" /> From History
                 </div>
               </div>
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
@@ -581,12 +658,15 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                     <div key={item.category} className="space-y-2">
                       <div className="flex justify-between text-sm font-black uppercase tracking-wider text-gray-500">
                         <span>{item.category}</span>
-                        <span>Count: {item.count}</span>
+                        <div className="flex gap-4">
+                          <span>Items: {item.count}</span>
+                          <span className="text-green-600">₹{item.total}</span>
+                        </div>
                       </div>
                       <div className="h-3 bg-gray-50 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
-                          style={{ width: `${(item.count / totalProducts) * 100}%` }}
+                          style={{ width: `${(item.total / (totalRevenue || 1)) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -738,14 +818,16 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Order Processing</span>
-                    <span className="text-xs font-black text-blue-400 uppercase">100% Active</span>
+                    <span className="text-sm font-bold text-gray-400">Public Writes</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-black uppercase text-green-400">
+                        Enabled
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Last Sync</span>
-                    <span className="text-xs font-black text-gray-300 uppercase">
-                      {new Date().toLocaleTimeString()}
-                    </span>
+                    <span className="text-sm font-bold text-gray-400">Auto-Polling</span>
+                    <span className="text-xs font-black text-blue-400 uppercase">30s Active</span>
                   </div>
                 </div>
               </div>
@@ -860,6 +942,13 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                 </div>
                 <button onClick={fetchOrders} className="bg-white border border-gray-100 p-4 rounded-2xl hover:bg-gray-50 transition-all shadow-sm group">
                   <Activity className={`w-5 h-5 text-gray-400 group-hover:text-green-600 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button 
+                  onClick={exportToCSV}
+                  title="Export to CSV"
+                  className="bg-white border border-gray-100 p-4 rounded-2xl hover:bg-gray-50 transition-all shadow-sm group"
+                >
+                  <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                 </button>
               </div>
             </header>
@@ -978,17 +1067,53 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
 
                         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                           {order.status === 'pending' ? (
-                            <button 
-                              onClick={() => onAdminAction('updateOrderStatus', { id: order.id, status: 'completed' })}
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                              Approve Sale
-                            </button>
+                            <div className="flex-1 flex gap-3">
+                              <button 
+                                onClick={() => {
+                                  const est = prompt('Estimated Delivery (e.g. 30-45 mins):', '30-45 mins');
+                                  onAdminAction('updateOrderStatus', { id: order.id, status: 'completed', estimatedDelivery: est });
+                                }}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
+                              >
+                                <CheckCircle2 className="w-5 h-5" />
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  const reason = prompt('Reason for rejection (Optional):', 'Item out of stock');
+                                  if (confirm('Are you sure you want to reject this order?')) {
+                                    onAdminAction('updateOrderStatus', { id: order.id, status: 'rejected', rejectReason: reason });
+                                  }
+                                }}
+                                className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95 border border-red-100"
+                              >
+                                <XCircle className="w-5 h-5" />
+                                Reject
+                              </button>
+                            </div>
+                          ) : order.status === 'completed' ? (
+                            <div className="flex-1 bg-gray-50 text-gray-400 font-black px-6 py-4 rounded-2xl flex flex-col items-center justify-center gap-1 border border-gray-100">
+                              <div className="flex items-center gap-3">
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                Sale Completed
+                              </div>
+                              {order.estimatedDelivery && (
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                  Delivery: {order.estimatedDelivery}
+                                </p>
+                              )}
+                            </div>
                           ) : (
-                            <div className="flex-1 bg-gray-50 text-gray-400 font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-3 border border-gray-100">
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
-                              Sale Completed
+                            <div className="flex-1 bg-red-50 text-red-400 font-black px-6 py-4 rounded-2xl flex flex-col items-center justify-center gap-1 border border-red-100">
+                              <div className="flex items-center gap-3">
+                                <XCircle className="w-5 h-5 text-red-500" />
+                                Order Rejected
+                              </div>
+                              {order.rejectReason && (
+                                <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">
+                                  Reason: {order.rejectReason}
+                                </p>
+                              )}
                             </div>
                           )}
                           
@@ -1004,7 +1129,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                             onClick={() => generatePDFInvoice(order)}
                             className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
                           >
-                            <ShoppingBag className="w-5 h-5" />
+                            <Download className="w-5 h-5" />
                             PDF
                           </button>
 
