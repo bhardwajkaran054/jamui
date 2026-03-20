@@ -117,8 +117,10 @@ export default function App() {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       })
       setOrders(data)
+      return data
     } catch (err) {
       console.error('[API ERROR] Orders fetch failed:', err.message)
+      return []
     }
   }
 

@@ -10,13 +10,16 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
   const [searching, setSearching] = useState(false)
   const [searchMode, setSearchMode] = useState('id') // 'id' or 'phone'
   const [searchPhone, setSearchPhone] = useState('')
+  const [verifyOrderId, setVerifyOrderId] = useState('')
   const [foundOrders, setFoundOrders] = useState([])
+  const [isVerified, setIsVerified] = useState(false)
 
   useEffect(() => {
     const savedId = localStorage.getItem('latestOrderId')
     if (savedId && orders.length > 0) {
       const cleanSavedId = savedId.toString()
       setOrderId(`JM-${cleanSavedId.slice(-6)}`)
+      setVerifyOrderId(`JM-${cleanSavedId.slice(-6)}`) // Also pre-fill verification
       
       // Try exact match first, then endsWith match
       const found = orders.find(o => 
@@ -27,6 +30,8 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
       if (found) {
         setTrackedOrder(found)
         setError('')
+        // Also pre-fill phone if found
+        if (found.customer?.phone) setSearchPhone(found.customer.phone)
         // Check if this order was placed in the last 10 seconds
         const orderTime = new Date(found.timestamp).getTime()
         const now = new Date().getTime()
@@ -102,27 +107,22 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
     }
     
     // Try local search first
-    let found = orders.find(o => 
+    let latestOrders = orders
+    let found = latestOrders.find(o => 
       o.id.toString() === cleanId || 
       o.id.toString().endsWith(cleanId)
     )
     
-    // If not found locally, refresh orders once (maybe it's a very new order not yet synced)
+    // If not found locally, refresh orders and wait a bit
     if (!found) {
-      await onRefresh()
-      // Search again in updated orders
-      // We use a local variable to search in the updated orders which would be passed in next render, 
-      // but for immediate feedback we can wait for the parent to re-render or use the fact that handleTrack 
-      // might be called again. However, since we're in an async function, orders might still be old.
-      // Better: App.jsx should return the fetched orders from onRefresh or we wait.
+      latestOrders = await onRefresh()
+      if (!latestOrders) latestOrders = orders // Fallback
+      
+      found = latestOrders.find(o => 
+        o.id.toString() === cleanId || 
+        o.id.toString().endsWith(cleanId)
+      )
     }
-
-    // Since we can't easily get the *new* orders from onRefresh (it doesn't return them),
-    // we rely on the next render's useEffect or just check if it's there now.
-    found = orders.find(o => 
-      o.id.toString() === cleanId || 
-      o.id.toString().endsWith(cleanId)
-    )
 
     if (found) {
       setTrackedOrder(found)
@@ -136,6 +136,7 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
     if (e) e.preventDefault()
     setError('')
     setFoundOrders([])
+    setIsVerified(false)
     setSearching(true)
 
     if (!searchPhone || searchPhone.length < 10) {
@@ -144,16 +145,37 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
       return
     }
 
+    if (!verifyOrderId) {
+      setError('To protect your privacy, please enter any one of your Order IDs (e.g. JM-604576).')
+      setSearching(false)
+      return
+    }
+
     // Refresh orders to get latest history
-    await onRefresh()
+    let latestOrders = await onRefresh()
+    if (!latestOrders) latestOrders = orders
 
     const cleanPhone = searchPhone.replace(/\D/g, '').slice(-10)
-    const matches = orders.filter(o => 
+    const cleanVerifyId = verifyOrderId.toUpperCase().replace('JM-', '').trim()
+
+    // Find all matches for this phone
+    const matches = latestOrders.filter(o => 
       o.customer?.phone?.replace(/\D/g, '').endsWith(cleanPhone)
     )
 
     if (matches.length > 0) {
-      setFoundOrders(matches)
+      // Security Check: Does the provided Order ID match ANY of these phone's orders?
+      const ownsOne = matches.some(o => 
+        o.id.toString() === cleanVerifyId || 
+        o.id.toString().endsWith(cleanVerifyId)
+      )
+
+      if (ownsOne) {
+        setFoundOrders(matches.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)))
+        setIsVerified(true)
+      } else {
+        setError('Verification Failed. The Order ID provided does not match this phone number.')
+      }
     } else {
       setError('No orders found for this number.')
     }
@@ -250,6 +272,14 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
             </form>
           ) : (
             <form onSubmit={handlePhoneSearch} className="space-y-4">
+              <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 mb-2">
+                <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest flex items-center gap-2">
+                  <AlertCircle className="w-3 h-3" /> Privacy Verification
+                </p>
+                <p className="text-[10px] text-blue-500 font-bold mt-1">
+                  To view history, enter your WhatsApp number and any one valid Order ID.
+                </p>
+              </div>
               <div className="relative group">
                 <MessageSquare className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
                 <input 
@@ -260,6 +290,16 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                   onChange={(e) => setSearchPhone(e.target.value)}
                 />
               </div>
+              <div className="relative group">
+                <Package className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+                <input 
+                  type="text"
+                  placeholder="Any Order ID (e.g. JM-604576)"
+                  className="w-full bg-gray-50 border border-gray-100 rounded-[2rem] pl-14 pr-6 py-5 text-lg font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-green-100 focus:bg-white transition-all uppercase placeholder:normal-case placeholder:font-medium"
+                  value={verifyOrderId}
+                  onChange={(e) => setVerifyOrderId(e.target.value)}
+                />
+              </div>
               <button 
                 type="submit"
                 disabled={searching}
@@ -268,10 +308,10 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                 {searching ? (
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Loading History...</span>
+                    <span>Verifying...</span>
                   </div>
                 ) : (
-                  'Find My Orders'
+                  'Verify & Show History'
                 )}
               </button>
             </form>
