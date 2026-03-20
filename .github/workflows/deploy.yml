@@ -35,9 +35,6 @@ jobs:
         env:
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
 
-      - name: Ensure CNAME exists in dist
-        run: cp public/CNAME dist/CNAME || echo "jamuisupermart.in" > dist/CNAME
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -56,6 +53,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           preview: false
-          # Explicitly set the domain if the action supports it (some versions do via url output)
-          # but usually it's picked up from the environment url above.
 
