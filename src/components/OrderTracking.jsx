@@ -171,24 +171,24 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 md:p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative w-full h-full sm:h-auto max-w-lg bg-white rounded-none sm:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-        <div className="p-6 sm:p-8 border-b border-gray-100 flex items-center justify-between">
+      <div className="relative w-full h-full sm:h-[90vh] sm:max-h-[850px] max-w-lg bg-white rounded-none sm:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md p-6 sm:p-8 border-b border-gray-100 flex items-center justify-between">
           <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Track Your Order</h2>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-500 font-medium">Enter your Order ID to see live status</p>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-50 rounded-full border border-green-100">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Live</span>
-                    </div>
-                  </div>
-                </div>
-          <button onClick={onClose} className="p-3 hover:bg-gray-100 rounded-2xl transition-all">
-            <X className="w-6 h-6 text-gray-400" />
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Track Your Order</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-gray-500 font-medium">Live Status & History</p>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-50 rounded-full border border-green-100">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Live</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-3 hover:bg-gray-100 rounded-2xl transition-all group">
+            <X className="w-6 h-6 text-gray-400 group-hover:text-gray-900" />
           </button>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8">
           {/* Search Mode Toggles */}
           <div className="flex bg-gray-100 p-1 rounded-2xl">
             <button 
@@ -312,34 +312,53 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
 
           {trackedOrder && searchMode === 'id' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-              {/* Order Status Timeline */}
-              <div className="flex justify-between items-start px-4 mb-2">
-                <div className="flex flex-col items-center gap-2 flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    trackedOrder.status === 'pending' || trackedOrder.status === 'completed' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'bg-gray-100 text-gray-400'
-                  }`}>
-                    <Package className="w-5 h-5" />
+              {/* Enhanced Order Status Timeline */}
+              <div className="bg-gray-50/50 p-6 rounded-[2.5rem] border border-gray-100">
+                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-6 text-center">Order Journey</p>
+                <div className="flex justify-between items-start relative">
+                  {/* Progress Bar Background */}
+                  <div className="absolute top-5 left-0 w-full h-1 bg-gray-100 -z-10" />
+                  <div className={`absolute top-5 left-0 h-1 bg-green-600 transition-all duration-1000 -z-10 ${
+                    trackedOrder.status === 'completed' ? 'w-full' : 'w-0'
+                  }`} />
+
+                  <div className="flex flex-col items-center gap-3 flex-1">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+                      trackedOrder.status === 'pending' || trackedOrder.status === 'completed' 
+                        ? 'bg-green-600 text-white shadow-lg shadow-green-100 ring-4 ring-white' 
+                        : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${
+                        trackedOrder.status === 'pending' || trackedOrder.status === 'completed' ? 'text-green-600' : 'text-gray-400'
+                      }`}>Received</p>
+                      <p className="text-[8px] text-gray-400 font-bold mt-0.5">{new Date(trackedOrder.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-widest text-center ${
-                    trackedOrder.status === 'pending' || trackedOrder.status === 'completed' ? 'text-green-600' : 'text-gray-400'
-                  }`}>Received</span>
-                </div>
-                <div className={`h-1 flex-1 mt-5 transition-all ${
-                  trackedOrder.status === 'completed' ? 'bg-green-600' : 'bg-gray-100'
-                }`} />
-                <div className="flex flex-col items-center gap-2 flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    trackedOrder.status === 'completed' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'bg-gray-100 text-gray-400'
-                  }`}>
-                    <CheckCircle2 className="w-5 h-5" />
+
+                  <div className="flex flex-col items-center gap-3 flex-1">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+                      trackedOrder.status === 'completed' 
+                        ? 'bg-green-600 text-white shadow-lg shadow-green-100 ring-4 ring-white' 
+                        : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${
+                        trackedOrder.status === 'completed' ? 'text-green-600' : 'text-gray-400'
+                      }`}>Confirmed</p>
+                      {trackedOrder.status === 'completed' && (
+                        <p className="text-[8px] text-green-500 font-bold mt-0.5">Success</p>
+                      )}
+                    </div>
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-widest text-center ${
-                    trackedOrder.status === 'completed' ? 'text-green-600' : 'text-gray-400'
-                  }`}>Confirmed</span>
                 </div>
               </div>
 
-              <div className={`flex items-center justify-between p-6 rounded-[2.5rem] border ${
+              <div className={`flex items-center justify-between p-6 rounded-[2.5rem] border transition-all ${
                 trackedOrder.status === 'completed' ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'
               }`}>
                 <div>
@@ -360,7 +379,7 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                       {trackedOrder.status === 'completed' ? 'Confirmed' : 'Order Received'}
                     </span>
                     {trackedOrder.estimatedDelivery && (
-                      <div className="ml-2 flex flex-col">
+                      <div className="ml-2 flex flex-col bg-white/50 px-3 py-1 rounded-xl border border-green-100">
                         <span className="text-[8px] font-black text-green-600 uppercase tracking-widest leading-none">EST. DELIVERY</span>
                         <span className="text-xs font-black text-gray-700 leading-none">{trackedOrder.estimatedDelivery}</span>
                       </div>
@@ -375,7 +394,8 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                     </button>
                   </div>
                   {trackedOrder.status !== 'completed' && (
-                    <p className="text-[10px] text-orange-500 font-bold mt-1 uppercase tracking-wider">
+                    <p className="text-[10px] text-orange-500 font-bold mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                      <div className="w-1 h-1 bg-orange-500 rounded-full animate-ping" />
                       Will confirm once accepted by store
                     </p>
                   )}
@@ -417,36 +437,81 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
           )}
 
           {foundOrders.length > 0 && searchMode === 'phone' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 overflow-y-auto max-h-[40vh] pr-2 custom-scrollbar">
-              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest px-2">
-                Found {foundOrders.length} Previous Orders
-              </p>
-              {foundOrders.map((order) => (
-                <button 
-                  key={order.id}
-                  onClick={() => {
-                    setTrackedOrder(order);
-                    setSearchMode('id');
-                    setOrderId(`JM-${order.id.toString().slice(-6)}`);
-                  }}
-                  className="w-full bg-white border border-gray-100 p-6 rounded-[2rem] flex items-center justify-between hover:border-green-200 hover:shadow-lg transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-2xl ${order.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
-                      {order.status === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 overflow-y-visible pr-2">
+              <div className="flex items-center justify-between px-2">
+                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                  Order History
+                </p>
+                <span className="bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {foundOrders.length} {foundOrders.length === 1 ? 'Order' : 'Orders'}
+                </span>
+              </div>
+              <div className="grid gap-4">
+                {foundOrders.map((order) => (
+                  <button 
+                    key={order.id}
+                    onClick={() => {
+                      setTrackedOrder(order);
+                      setSearchMode('id');
+                      setOrderId(`JM-${order.id.toString().slice(-6)}`);
+                    }}
+                    className="w-full bg-white border border-gray-100 p-5 rounded-[2rem] flex items-center justify-between hover:border-green-200 hover:shadow-xl transition-all text-left group relative overflow-hidden"
+                  >
+                    {/* Status indicator line */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === 'completed' ? 'bg-green-500' : 'bg-orange-500'}`} />
+                    
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
+                        order.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
+                      }`}>
+                        {order.status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-gray-900">#JM-{order.id.toString().slice(-6)}</h4>
+                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                            order.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {order.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                          {new Date(order.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-black text-gray-900 leading-none mb-1">#JM-{order.id.toString().slice(-6)}</h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                        {new Date(order.timestamp).toLocaleDateString()} • ₹{order.total}
-                      </p>
+                    <div className="text-right flex items-center gap-4">
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Total</p>
+                        <p className="text-lg font-black text-gray-900 leading-none">₹{order.total}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
                     </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+        </div>
+
+        {/* Modal Footer - Fixed at bottom */}
+        <div className="p-6 bg-gray-50/80 backdrop-blur-md border-t border-gray-100 flex flex-col gap-4">
+          <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 font-black uppercase tracking-widest leading-relaxed">
+            <span>Secured by Jamui Super Mart</span>
+            <div className="w-1 h-1 bg-gray-300 rounded-full" />
+            <button 
+              onClick={() => window.open('https://wa.me/917856053987', '_blank')}
+              className="text-green-600 hover:underline"
+            >
+              Contact Support
+            </button>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-full sm:hidden bg-gray-900 text-white font-black py-4 rounded-2xl hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200"
+          >
+            Close Tracker
+          </button>
         </div>
       </div>
     </div>
