@@ -1022,17 +1022,31 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
 
                         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                           {order.status === 'pending' ? (
-                            <button 
-                              onClick={() => {
-                                const est = prompt('Estimated Delivery (e.g. 30-45 mins):', '30-45 mins');
-                                onAdminAction('updateOrderStatus', { id: order.id, status: 'completed', estimatedDelivery: est });
-                              }}
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                              Approve Sale
-                            </button>
-                          ) : (
+                            <div className="flex-1 flex gap-3">
+                              <button 
+                                onClick={() => {
+                                  const est = prompt('Estimated Delivery (e.g. 30-45 mins):', '30-45 mins');
+                                  onAdminAction('updateOrderStatus', { id: order.id, status: 'completed', estimatedDelivery: est });
+                                }}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
+                              >
+                                <CheckCircle2 className="w-5 h-5" />
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  const reason = prompt('Reason for rejection (Optional):', 'Item out of stock');
+                                  if (confirm('Are you sure you want to reject this order?')) {
+                                    onAdminAction('updateOrderStatus', { id: order.id, status: 'rejected', rejectReason: reason });
+                                  }
+                                }}
+                                className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95 border border-red-100"
+                              >
+                                <XCircle className="w-5 h-5" />
+                                Reject
+                              </button>
+                            </div>
+                          ) : order.status === 'completed' ? (
                             <div className="flex-1 bg-gray-50 text-gray-400 font-black px-6 py-4 rounded-2xl flex flex-col items-center justify-center gap-1 border border-gray-100">
                               <div className="flex items-center gap-3">
                                 <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -1041,6 +1055,18 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                               {order.estimatedDelivery && (
                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                                   Delivery: {order.estimatedDelivery}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex-1 bg-red-50 text-red-400 font-black px-6 py-4 rounded-2xl flex flex-col items-center justify-center gap-1 border border-red-100">
+                              <div className="flex items-center gap-3">
+                                <XCircle className="w-5 h-5 text-red-500" />
+                                Order Rejected
+                              </div>
+                              {order.rejectReason && (
+                                <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">
+                                  Reason: {order.rejectReason}
                                 </p>
                               )}
                             </div>

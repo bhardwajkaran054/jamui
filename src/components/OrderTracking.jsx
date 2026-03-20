@@ -185,7 +185,11 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
   const handleRefresh = async () => {
     if (!trackedOrder) return
     setRefreshing(true)
-    await onRefresh()
+    const latestOrders = await onRefresh()
+    if (latestOrders) {
+      const current = latestOrders.find(o => o.id.toString() === trackedOrder.id.toString())
+      if (current) setTrackedOrder(current)
+    }
     setRefreshing(false)
   }
 
@@ -382,16 +386,25 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                       trackedOrder.status === 'completed' 
                         ? 'bg-green-600 text-white shadow-lg shadow-green-100 ring-4 ring-white' 
+                        : trackedOrder.status === 'rejected'
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-100 ring-4 ring-white'
                         : 'bg-gray-100 text-gray-400'
                     }`}>
-                      <CheckCircle2 className="w-5 h-5" />
+                      {trackedOrder.status === 'rejected' ? <XCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                     </div>
                     <div className="text-center">
                       <p className={`text-[10px] font-black uppercase tracking-widest ${
-                        trackedOrder.status === 'completed' ? 'text-green-600' : 'text-gray-400'
-                      }`}>Confirmed</p>
+                        trackedOrder.status === 'completed' ? 'text-green-600' : 
+                        trackedOrder.status === 'rejected' ? 'text-red-600' : 
+                        'text-gray-400'
+                      }`}>
+                        {trackedOrder.status === 'rejected' ? 'Cancelled' : 'Confirmed'}
+                      </p>
                       {trackedOrder.status === 'completed' && (
                         <p className="text-[8px] text-green-500 font-bold mt-0.5">Success</p>
+                      )}
+                      {trackedOrder.status === 'rejected' && (
+                        <p className="text-[8px] text-red-500 font-bold mt-0.5">Failed</p>
                       )}
                     </div>
                   </div>
@@ -399,26 +412,38 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
               </div>
 
               <div className={`flex items-center justify-between p-6 rounded-[2.5rem] border transition-all ${
-                trackedOrder.status === 'completed' ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'
+                trackedOrder.status === 'completed' ? 'bg-green-50 border-green-100' : 
+                trackedOrder.status === 'rejected' ? 'bg-red-50 border-red-100' :
+                'bg-orange-50 border-orange-100'
               }`}>
                 <div>
                   <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
-                    trackedOrder.status === 'completed' ? 'text-green-600' : 'text-orange-600'
+                    trackedOrder.status === 'completed' ? 'text-green-600' : 
+                    trackedOrder.status === 'rejected' ? 'text-red-600' :
+                    'text-orange-600'
                   }`}>
-                    {trackedOrder.status === 'completed' ? 'Order Status' : 'Next Step'}
+                    {trackedOrder.status === 'completed' ? 'Order Status' : 
+                     trackedOrder.status === 'rejected' ? 'Order Status' :
+                     'Next Step'}
                   </p>
                   <div className="flex items-center gap-2">
                     {trackedOrder.status === 'completed' ? (
                       <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    ) : trackedOrder.status === 'rejected' ? (
+                      <XCircle className="w-6 h-6 text-red-600" />
                     ) : (
                       <Clock className="w-6 h-6 text-orange-500 animate-pulse" />
                     )}
                     <span className={`text-2xl font-black uppercase tracking-tight ${
-                      trackedOrder.status === 'completed' ? 'text-green-700' : 'text-orange-600'
+                      trackedOrder.status === 'completed' ? 'text-green-700' : 
+                      trackedOrder.status === 'rejected' ? 'text-red-700' :
+                      'text-orange-600'
                     }`}>
-                      {trackedOrder.status === 'completed' ? 'Confirmed' : 'Order Received'}
+                      {trackedOrder.status === 'completed' ? 'Confirmed' : 
+                       trackedOrder.status === 'rejected' ? 'Cancelled' :
+                       'Order Received'}
                     </span>
-                    {trackedOrder.estimatedDelivery && (
+                    {trackedOrder.estimatedDelivery && trackedOrder.status === 'completed' && (
                       <div className="ml-2 flex flex-col bg-white/50 px-3 py-1 rounded-xl border border-green-100">
                         <span className="text-[8px] font-black text-green-600 uppercase tracking-widest leading-none">EST. DELIVERY</span>
                         <span className="text-xs font-black text-gray-700 leading-none">{trackedOrder.estimatedDelivery}</span>
@@ -433,10 +458,16 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                       <RefreshCw className={`w-4 h-4 text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
-                  {trackedOrder.status !== 'completed' && (
+                  {trackedOrder.status === 'pending' && (
                     <p className="text-[10px] text-orange-500 font-bold mt-2 uppercase tracking-wider flex items-center gap-1.5">
                       <div className="w-1 h-1 bg-orange-500 rounded-full animate-ping" />
                       Will confirm once accepted by store
+                    </p>
+                  )}
+                  {trackedOrder.status === 'rejected' && (
+                    <p className="text-[10px] text-red-500 font-bold mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                      <AlertCircle className="w-3 h-3" />
+                      {trackedOrder.rejectReason || 'Order could not be processed at this time'}
                     </p>
                   )}
                 </div>

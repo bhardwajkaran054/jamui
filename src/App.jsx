@@ -59,6 +59,11 @@ export default function App() {
     fetchDeliveryZones()
     if (token) setIsAdmin(true)
 
+    // Polling for new orders (every 30 seconds)
+    const pollInterval = setInterval(() => {
+      fetchOrders()
+    }, 30000)
+
     // Secret /admin path detection
     const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
     if (isPathAdmin) {
@@ -82,6 +87,8 @@ export default function App() {
         setTrackingOpen(true)
       }
     }
+
+    return () => clearInterval(pollInterval)
   }, [token, passedSecret])
 
   const showNotification = (message, type = 'success') => {
@@ -197,7 +204,8 @@ export default function App() {
           headers: { 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ 
             status: data.status,
-            estimatedDelivery: data.estimatedDelivery 
+            estimatedDelivery: data.estimatedDelivery,
+            rejectReason: data.rejectReason
           })
         })
         showNotification(`Order ${data.status} successfully`)
