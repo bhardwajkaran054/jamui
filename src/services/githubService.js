@@ -19,12 +19,15 @@ const getToken = () => {
     // 1. Check for a blacklisted token first (to avoid repeating known failures in this session)
     const badToken = typeof window !== 'undefined' ? sessionStorage.getItem('badGithubToken') : null;
     
+    // 2. Admin Session Token (Saved in localStorage)
     const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
     if (adminToken && adminToken !== badToken) return adminToken.trim();
     
+    // 3. Shared Public Token (Optional fallback saved by admin)
     const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
     if (publicToken && publicToken !== badToken) return publicToken.trim();
 
+    // 4. Environment Variable (VITE_GITHUB_TOKEN)
     const envToken = import.meta.env.VITE_GITHUB_TOKEN;
     if (envToken && envToken !== badToken) return envToken.trim();
 
@@ -229,6 +232,11 @@ export const updateDb = async (newData) => {
       invalidateToken(token);
     }
     const error = await updateResponse.json().catch(() => ({ message: 'Unknown error' }));
+    console.error('[GITHUB DEBUG] Update failed:', {
+      status: updateResponse.status,
+      message: error.message,
+      tokenPreview: token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : 'none'
+    });
     throw new Error(`Failed to update database on GitHub: ${error.message}`);
   }
 
