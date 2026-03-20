@@ -167,7 +167,7 @@
       "emoji": "🫘",
       "image": "https://media.gettyimages.com/id/1912193566/photo/full-frame-macro-shot-of-brown-rice-background-food-texture.jpg?s=612x612&w=0&k=20&c=nvV_LCnxO58IaJzxfJ3QDd201L9TAUMokIwK3amaAtk=",
       "useImage": true,
-      "stock": 9,
+      "stock": 7,
       "id": 19
     },
     {
@@ -325,7 +325,8 @@
         "phone": "9999999999"
       },
       "timestamp": "2026-03-20T01:11:05.245Z",
-      "status": "pending"
+      "status": "completed",
+      "estimatedDelivery": "30-45 mins"
     },
     {
       "id": 1773933495583,
@@ -379,6 +380,15 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773976460640.6084,
+      "productId": 19,
+      "productName": "test",
+      "oldStock": 9,
+      "newStock": 7,
+      "reason": "Order Approved (#JM-065245)",
+      "timestamp": "2026-03-20T03:14:20.640Z"
+    },
     {
       "id": 1773974274577.3718,
       "productId": 4,
