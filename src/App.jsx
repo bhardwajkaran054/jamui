@@ -293,6 +293,12 @@ export default function App() {
 
       setCart({})
       soundService.play('order')
+      
+      // Haptic feedback for mobile
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100])
+      }
+
       confetti({
         particleCount: 150,
         spread: 70,

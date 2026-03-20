@@ -52,11 +52,11 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 md:p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative w-full max-w-lg bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+      <div className="relative w-full h-full sm:h-auto max-w-lg bg-white rounded-none sm:rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="p-6 sm:p-8 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Track Your Order</h2>
             <p className="text-sm text-gray-500 font-medium">Enter your Order ID to see live status</p>
