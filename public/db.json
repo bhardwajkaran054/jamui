@@ -6,7 +6,7 @@
       "price": 830,
       "unit": "26kg",
       "category": "Rice",
-      "emoji": "RICE",
+      "emoji": "Kasturi Usna 26kg",
       "stock": 9,
       "useImage": false,
       "image": ""
@@ -186,50 +186,6 @@
     "Veg"
   ],
   "orders": [
-    {
-      "id": 1774014770905,
-      "items": [
-        {
-          "id": 6,
-          "name": "Refined Oil 1 Liter",
-          "price": 135,
-          "quantity": 1,
-          "emoji": "🫙",
-          "category": "Oil"
-        },
-        {
-          "id": 7,
-          "name": "Mustard Oil 1 Liter",
-          "price": 170,
-          "quantity": 1,
-          "emoji": "🫙",
-          "category": "Oil"
-        },
-        {
-          "id": 8,
-          "name": "Toor Dal 1 kg",
-          "price": 125,
-          "quantity": 1,
-          "emoji": "🫘",
-          "category": "Dal"
-        },
-        {
-          "id": 9,
-          "name": "Dalmia Gold 250 gm",
-          "price": 110,
-          "quantity": 2,
-          "emoji": "🫘",
-          "category": "Dal"
-        }
-      ],
-      "total": 700,
-      "customer": {
-        "name": "Jammy",
-        "phone": "5555511111"
-      },
-      "timestamp": "2026-03-20T13:52:50.905Z",
-      "status": "pending"
-    },
     {
       "id": 1774012612104,
       "items": [
