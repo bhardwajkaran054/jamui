@@ -11,7 +11,7 @@ import SecretChallenge from './components/SecretChallenge'
 import AdminDashboard from './components/AdminDashboard'
 import ProductEditModal from './components/ProductEditModal'
 import { CheckCircle, AlertCircle, X } from 'lucide-react'
-import { apiFetch, API_URL } from './api'
+import { apiFetch } from './api'
 import { soundService } from './services/soundService'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -73,18 +73,18 @@ export default function App() {
   }
 
   const fetchOrders = async () => {
+    // Only admins should fetch all orders
+    if (!isAdmin) return []
+    
     try {
       const data = await apiFetch('/orders');
-      
       if (data && Array.isArray(data)) {
         setOrders(data)
-        // Store the latest orders in local storage so other windows can see them too
         localStorage.setItem('cachedOrders', JSON.stringify(data))
       }
       return data
     } catch (err) {
       console.error('[API ERROR] Orders fetch failed:', err.message)
-      // Fallback to local storage if API fails
       const cached = localStorage.getItem('cachedOrders')
       if (cached) {
         const parsed = JSON.parse(cached)
@@ -92,6 +92,29 @@ export default function App() {
         return parsed
       }
       return []
+    }
+  }
+
+  const fetchOrderById = async (id) => {
+    try {
+      const cleanId = id.toString().toUpperCase().replace('JM-', '').trim();
+      const data = await apiFetch(`/orders/${cleanId}`);
+      return data;
+    } catch (err) {
+      console.error('[API ERROR] Single order fetch failed:', err.message)
+      return null;
+    }
+  }
+
+  const fetchOrderHistory = async (phone, verifyId) => {
+    try {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+      const url = `/orders/history/${cleanPhone}${verifyId ? `?verifyId=${verifyId}` : ''}`;
+      const data = await apiFetch(url);
+      return data;
+    } catch (err) {
+      console.error('[API ERROR] History fetch failed:', err.message)
+      return [];
     }
   }
 
@@ -185,8 +208,10 @@ export default function App() {
       }, 15000)
     }
 
-    // Secret /admin path detection
-    const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
+    // URL path/hash detection
+    const hash = window.location.hash
+    const isPathAdmin = hash.includes('/admin') || window.location.pathname.endsWith('/admin')
+    
     if (isPathAdmin) {
       if (!passedSecret) {
         setShowSecret(true)
@@ -194,31 +219,16 @@ export default function App() {
         setShowLogin(true)
       }
     } else {
-      // Hide admin overlays if we are not on the admin path
       setShowSecret(false)
       setShowLogin(false)
     }
 
     // Direct tracking link detection
-    const hash = window.location.hash
     if (hash.includes('/track/')) {
       const trackId = hash.split('/track/')[1]
       if (trackId) {
         localStorage.setItem('latestOrderId', trackId)
         setTrackingOpen(true)
-      }
-    }
-
-    // One-time authorization link detection
-    if (hash.includes('/auth/')) {
-      const authToken = hash.split('/auth/')[1]
-      if (authToken && authToken.startsWith('ghp_')) {
-        localStorage.setItem('githubToken', authToken)
-        localStorage.setItem('publicOrderToken', authToken)
-        setToken(authToken)
-        setIsAdmin(true)
-        showNotification('Device Authorized for Cloud Sync!', 'success')
-        window.location.hash = '/' // Clear the token from URL
       }
     }
 
@@ -540,6 +550,8 @@ export default function App() {
           orders={orders} 
           onClose={() => setTrackingOpen(false)} 
           onRefresh={fetchOrders}
+          fetchOrderById={fetchOrderById}
+          fetchOrderHistory={fetchOrderHistory}
         />
       )}
       

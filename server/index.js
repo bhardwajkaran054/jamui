@@ -139,6 +139,47 @@ app.get('/api/orders', authMiddleware, (req, res) => {
   });
 });
 
+// Public: Fetch single order by ID for tracking
+app.get('/api/orders/:id', (req, res) => {
+  const id = req.params.id;
+  db.get('SELECT * FROM orders WHERE id = ?', [id], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Database Error' });
+    if (!row) return res.status(404).json({ error: 'Order not found' });
+    
+    res.json({ 
+      ...row, 
+      items: JSON.parse(row.items),
+      customer: JSON.parse(row.customer || '{}')
+    });
+  });
+});
+
+// Public: Fetch order history by phone (requires matching one valid order ID for "verification")
+app.get('/api/orders/history/:phone', (req, res) => {
+  const phone = req.params.phone;
+  const verifyId = req.query.verifyId; // Optional security check
+  
+  db.all('SELECT * FROM orders WHERE customer LIKE ? ORDER BY timestamp DESC', [`%${phone}%`], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database Error' });
+    
+    const parsedRows = rows.map(row => ({
+      ...row,
+      items: JSON.parse(row.items),
+      customer: JSON.parse(row.customer || '{}')
+    })).filter(row => row.customer.phone && row.customer.phone.includes(phone));
+
+    if (verifyId) {
+      const ownsOne = parsedRows.some(o => 
+        o.id.toString() === verifyId || 
+        o.id.toString().endsWith(verifyId)
+      );
+      if (!ownsOne) return res.status(403).json({ error: 'Verification failed' });
+    }
+
+    res.json(parsedRows);
+  });
+});
+
 app.put('/api/orders/:id', authMiddleware, (req, res) => {
   const { status, estimatedDelivery, rejectReason } = req.body;
   const id = req.params.id;

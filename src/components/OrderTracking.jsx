@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, X, Package, Clock, CheckCircle2, AlertCircle, Sparkles, RefreshCw, Bell, MessageSquare, ChevronRight } from 'lucide-react'
 
-export default function OrderTracking({ orders, onClose, onRefresh }) {
+export default function OrderTracking({ orders, onClose, onRefresh, fetchOrderById, fetchOrderHistory }) {
   const [orderId, setOrderId] = useState('')
   const [trackedOrder, setTrackedOrder] = useState(null)
   const [error, setError] = useState('')
@@ -15,88 +15,55 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
   const [isVerified, setIsVerified] = useState(false)
   const [isCloudSynced, setIsCloudSynced] = useState(true)
 
-  useEffect(() => {
-    if (!trackedOrder) return
-    // Check if the order exists in the global 'orders' list (which comes from GitHub)
-    const inCloud = orders.some(o => o.id.toString() === trackedOrder.id.toString())
-    setIsCloudSynced(inCloud)
-  }, [orders, trackedOrder])
-
+  // Auto-fill from local storage on mount
   useEffect(() => {
     const savedId = localStorage.getItem('latestOrderId')
-    if (savedId && orders.length > 0) {
+    if (savedId) {
       const cleanSavedId = savedId.toString()
       setOrderId(`JM-${cleanSavedId.slice(-6)}`)
-      setVerifyOrderId(`JM-${cleanSavedId.slice(-6)}`) // Also pre-fill verification
+      setVerifyOrderId(`JM-${cleanSavedId.slice(-6)}`)
       
-      // Try exact match first, then endsWith match
-      const found = orders.find(o => 
-        o.id.toString() === cleanSavedId || 
-        o.id.toString().endsWith(cleanSavedId.slice(-6))
-      )
-      
-      if (found) {
-        setTrackedOrder(found)
-        setError('')
-        // Also pre-fill phone if found
-        if (found.customer?.phone) setSearchPhone(found.customer.phone)
-        // Check if this order was placed in the last 10 seconds
-        const orderTime = new Date(found.timestamp).getTime()
-        const now = new Date().getTime()
-        if (now - orderTime < 10000) {
-          setIsNewOrder(true)
+      // Try to fetch this specific order immediately
+      const loadInitial = async () => {
+        setSearching(true)
+        const found = await fetchOrderById(cleanSavedId)
+        if (found) {
+          setTrackedOrder(found)
+          if (found.customer?.phone) setSearchPhone(found.customer.phone)
+          const orderTime = new Date(found.timestamp).getTime()
+          const now = new Date().getTime()
+          if (now - orderTime < 10000) setIsNewOrder(true)
         }
+        setSearching(false)
       }
-    }
-  }, [orders])
-
-  // Live Status Polling
-  useEffect(() => {
-    if (!trackedOrder || trackedOrder.status === 'completed') return
-
-    const pollInterval = setInterval(() => {
-      onRefresh()
-    }, 10000) // Poll every 10 seconds
-
-    return () => clearInterval(pollInterval)
-  }, [trackedOrder, onRefresh])
-
-  // Status Change Detection & Notifications
-  useEffect(() => {
-    if (!trackedOrder) return
-
-    const currentOrder = orders.find(o => o.id.toString() === trackedOrder.id.toString())
-    if (currentOrder && currentOrder.status !== trackedOrder.status) {
-      // Status has changed!
-      setTrackedOrder(currentOrder)
-      
-      if (currentOrder.status === 'completed') {
-        // Trigger Notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Jamui Super Mart', {
-            body: `Your order #JM-${currentOrder.id.toString().slice(-6)} has been confirmed!`,
-            icon: '/favicon.svg'
-          })
-        }
-        
-        // Haptic for mobile
-        if ('vibrate' in navigator) {
-          navigator.vibrate([200, 100, 200, 100, 500])
-        }
-
-        // Play sound
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
-        audio.play().catch(() => {})
-      }
-    }
-  }, [orders, trackedOrder])
-
-  useEffect(() => {
-    // Request notification permission on mount
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission()
+      loadInitial()
     }
   }, [])
+
+  // Live Status Polling for currently tracked order
+  useEffect(() => {
+    if (!trackedOrder || trackedOrder.status === 'completed' || trackedOrder.status === 'rejected') return
+
+    const pollInterval = setInterval(async () => {
+      const updated = await fetchOrderById(trackedOrder.id)
+      if (updated && updated.status !== trackedOrder.status) {
+        setTrackedOrder(updated)
+        // Handle notifications
+        if (updated.status === 'completed') {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Jamui Super Mart', {
+              body: `Your order #JM-${updated.id.toString().slice(-6)} has been confirmed!`,
+              icon: '/favicon.svg'
+            })
+          }
+          if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 500])
+          new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {})
+        }
+      }
+    }, 10000)
+
+    return () => clearInterval(pollInterval)
+  }, [trackedOrder])
 
   const handleTrack = async (e) => {
     if (e) e.preventDefault()
@@ -105,32 +72,14 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
     setIsNewOrder(false)
     setSearching(true)
 
-    // Format input to match ID structure (extract numbers if JM- prefix used)
     const cleanId = orderId.toUpperCase().replace('JM-', '').trim()
-    
     if (!cleanId) {
       setError('Please enter an Order ID.')
       setSearching(false)
       return
     }
     
-    // Try local search first
-    let latestOrders = orders
-    let found = latestOrders.find(o => 
-      o.id.toString() === cleanId || 
-      o.id.toString().endsWith(cleanId)
-    )
-    
-    // If not found locally, refresh orders and wait a bit
-    if (!found) {
-      latestOrders = await onRefresh()
-      if (!latestOrders) latestOrders = orders // Fallback
-      
-      found = latestOrders.find(o => 
-        o.id.toString() === cleanId || 
-        o.id.toString().endsWith(cleanId)
-      )
-    }
+    const found = await fetchOrderById(cleanId)
 
     if (found) {
       setTrackedOrder(found)
@@ -159,33 +108,14 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
       return
     }
 
-    // Refresh orders to get latest history
-    let latestOrders = await onRefresh()
-    if (!latestOrders) latestOrders = orders
-
-    const cleanPhone = searchPhone.replace(/\D/g, '').slice(-10)
     const cleanVerifyId = verifyOrderId.toUpperCase().replace('JM-', '').trim()
+    const history = await fetchOrderHistory(searchPhone, cleanVerifyId)
 
-    // Find all matches for this phone
-    const matches = latestOrders.filter(o => 
-      o.customer?.phone?.replace(/\D/g, '').endsWith(cleanPhone)
-    )
-
-    if (matches.length > 0) {
-      // Security Check: Does the provided Order ID match ANY of these phone's orders?
-      const ownsOne = matches.some(o => 
-        o.id.toString() === cleanVerifyId || 
-        o.id.toString().endsWith(cleanVerifyId)
-      )
-
-      if (ownsOne) {
-        setFoundOrders(matches.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)))
-        setIsVerified(true)
-      } else {
-        setError('Verification Failed. The Order ID provided does not match this phone number.')
-      }
+    if (history && history.length > 0) {
+      setFoundOrders(history)
+      setIsVerified(true)
     } else {
-      setError('No orders found for this number.')
+      setError('No orders found or verification failed. Please check your details.')
     }
     setSearching(false)
   }
@@ -193,11 +123,8 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
   const handleRefresh = async () => {
     if (!trackedOrder) return
     setRefreshing(true)
-    const latestOrders = await onRefresh()
-    if (latestOrders) {
-      const current = latestOrders.find(o => o.id.toString() === trackedOrder.id.toString())
-      if (current) setTrackedOrder(current)
-    }
+    const updated = await fetchOrderById(trackedOrder.id)
+    if (updated) setTrackedOrder(updated)
     setRefreshing(false)
   }
 
