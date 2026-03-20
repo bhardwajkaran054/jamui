@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Search, X, Package, Clock, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
+import { Search, X, Package, Clock, CheckCircle2, AlertCircle, Sparkles, RefreshCw } from 'lucide-react'
 
-export default function OrderTracking({ orders, onClose }) {
+export default function OrderTracking({ orders, onClose, onRefresh }) {
   const [orderId, setOrderId] = useState('')
   const [trackedOrder, setTrackedOrder] = useState(null)
   const [error, setError] = useState('')
   const [isNewOrder, setIsNewOrder] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     const savedId = localStorage.getItem('latestOrderId')
@@ -40,6 +41,13 @@ export default function OrderTracking({ orders, onClose }) {
     } else {
       setError('Order not found. Please check your Order ID.')
     }
+  }
+
+  const handleRefresh = async () => {
+    if (!trackedOrder) return
+    setRefreshing(true)
+    await onRefresh()
+    setRefreshing(false)
   }
 
   return (
@@ -114,6 +122,14 @@ export default function OrderTracking({ orders, onClose }) {
                     }`}>
                       {trackedOrder.status}
                     </span>
+                    <button 
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      className="ml-2 p-2 hover:bg-white/50 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                      title="Refresh Status"
+                    >
+                      <RefreshCw className={`w-4 h-4 text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
+                    </button>
                   </div>
                 </div>
                 <div className="text-right">

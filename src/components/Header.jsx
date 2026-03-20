@@ -31,10 +31,10 @@ export default function Header({ cartCount, onCartClick, onTrackClick, isAdmin, 
           <div className="flex items-center gap-3">
             <button
               onClick={onTrackClick}
-              className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border border-gray-100 px-5 py-3 rounded-2xl transition-all shadow-sm active:scale-95 text-gray-600 hover:bg-gray-50"
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white border border-gray-100 px-4 sm:px-5 py-3 rounded-2xl transition-all shadow-sm active:scale-95 text-gray-600 hover:bg-gray-50"
             >
               <Search className="w-4 h-4" />
-              Track Order
+              <span className="hidden xs:inline">Track Order</span>
             </button>
 
             {isAdmin && (

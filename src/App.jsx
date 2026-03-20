@@ -420,6 +420,7 @@ export default function App() {
         <OrderTracking 
           orders={orders} 
           onClose={() => setTrackingOpen(false)} 
+          onRefresh={fetchOrders}
         />
       )}
       
