@@ -461,23 +461,37 @@ export default function App() {
           </div>
           <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Backend Unreachable</h2>
           <p className="text-gray-500 font-bold mb-8 leading-relaxed">
-            The storefront is unable to connect to the management server. 
-            This usually happens if the backend process has stopped or the network is blocked.
+            The storefront is unable to connect to the database. 
           </p>
           
           <div className="bg-white/50 p-6 rounded-2xl border border-red-100 text-left mb-8 space-y-3">
             <p className="text-[10px] text-red-400 font-black uppercase tracking-widest mb-1">Troubleshooting Checklist:</p>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">1</div>
-              <p className="text-xs font-bold text-gray-600">Ensure you ran <code className="bg-red-50 px-1.5 py-0.5 rounded text-red-700">npm run dev</code> (not just vite)</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">2</div>
-              <p className="text-xs font-bold text-gray-600">Check if the server is listening on port <span className="text-red-700 font-black">5001</span></p>
-            </div>
+            {window.location.hostname === 'localhost' ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">1</div>
+                  <p className="text-xs font-bold text-gray-600">Ensure you ran <code className="bg-red-50 px-1.5 py-0.5 rounded text-red-700">npm run dev</code> (not just vite)</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">2</div>
+                  <p className="text-xs font-bold text-gray-600">Check if the server is listening on port <span className="text-red-700 font-black">5001</span></p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">1</div>
+                  <p className="text-xs font-bold text-gray-600">Ensure <code className="bg-red-50 px-1.5 py-0.5 rounded text-red-700">public/db.json</code> exists in your repo</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">2</div>
+                  <p className="text-xs font-bold text-gray-600">Verify your GitHub repository is Public</p>
+                </div>
+              </>
+            )}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 mt-0.5">3</div>
-              <p className="text-xs font-bold text-gray-600">If using mobile, ensure your PC and phone are on the same WiFi</p>
+              <p className="text-xs font-bold text-gray-600">Check your internet connection</p>
             </div>
           </div>
 

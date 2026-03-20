@@ -1,13 +1,19 @@
 import { fetchDb, updateDb } from './services/githubService';
 
 /**
- * Switch between 'github-backend' and 'local-node-backend'
+ * Smart Backend Selector
+ * Automatically switches between Local Node.js and GitHub-as-a-Backend
  */
-export const BACKEND_MODE = 'local-node-backend'; 
+const isLocal = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || 
+   window.location.hostname === '127.0.0.1' || 
+   window.location.port === '5173');
+
+export const BACKEND_MODE = isLocal ? 'local-node-backend' : 'github-backend'; 
 export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
-  // 1. Local Node.js Backend Implementation
+  // 1. Local Node.js Backend Implementation (For local development)
   if (BACKEND_MODE === 'local-node-backend') {
     let url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
     
