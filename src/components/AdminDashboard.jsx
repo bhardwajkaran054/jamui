@@ -978,17 +978,30 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
 
                         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                           {order.status === 'pending' ? (
-                            <button 
-                              onClick={() => onAdminAction('updateOrderStatus', { id: order.id, status: 'completed' })}
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                              Approve Sale
-                            </button>
+                            <div className="flex flex-1 gap-2">
+                              <button 
+                                onClick={() => onAdminAction('updateOrderStatus', { id: order.id, status: 'completed' })}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-100 active:scale-95"
+                              >
+                                <CheckCircle2 className="w-5 h-5" />
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to reject this order?')) {
+                                    onAdminAction('updateOrderStatus', { id: order.id, status: 'rejected' })
+                                  }
+                                }}
+                                className="bg-red-50 hover:bg-red-100 text-red-600 font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95 border border-red-100"
+                              >
+                                <XCircle className="w-5 h-5" />
+                                Reject
+                              </button>
+                            </div>
                           ) : (
-                            <div className="flex-1 bg-gray-50 text-gray-400 font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-3 border border-gray-100">
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
-                              Sale Completed
+                            <div className={`flex-1 ${order.status === 'rejected' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-gray-50 text-gray-400 border-gray-100'} font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-3 border`}>
+                              {order.status === 'rejected' ? <XCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                              {order.status === 'rejected' ? 'Order Rejected' : 'Sale Completed'}
                             </div>
                           )}
                           

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
-import { Bell, ShoppingCart, User, ShieldCheck } from 'lucide-react'
+import { Bell, ShoppingCart, User, ShieldCheck, MapPin } from 'lucide-react'
 
-export default function Header({ cartCount, onCartClick, isAdmin, notice }) {
+export default function Header({ cartCount, onCartClick, onTrackClick, isAdmin, notice }) {
   return (
     <div className="sticky top-0 z-40">
       {notice?.active && notice?.text && (
@@ -22,20 +22,28 @@ export default function Header({ cartCount, onCartClick, isAdmin, notice }) {
             <div className="bg-green-600 p-2 rounded-xl shadow-lg shadow-green-200">
               <ShoppingCart className="w-6 h-6 text-white" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h1 className="text-xl font-black tracking-tight text-gray-900 leading-none mb-1">JAMUI SUPER MART</h1>
               <p className="text-[10px] text-green-600 font-black uppercase tracking-widest">Premium Grocery Services</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={onTrackClick}
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-600 hover:bg-gray-100 px-4 sm:px-5 py-3 rounded-2xl transition-all active:scale-95 border border-gray-200"
+            >
+              <MapPin className="w-4 h-4 text-green-600" />
+              <span className="hidden xs:inline">Track Order</span>
+            </button>
+
             {isAdmin && (
               <button
                 onClick={() => window.location.href = '/admin'}
                 className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-gray-900 text-white px-5 py-3 rounded-2xl transition-all shadow-xl shadow-gray-200 active:scale-95"
               >
                 <ShieldCheck className="w-4 h-4" />
-                Admin Dashboard
+                Admin
               </button>
             )}
             

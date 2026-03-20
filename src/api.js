@@ -125,8 +125,9 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint === '/orders' && options.method === 'POST') {
     const { items, total, customer, promoCode, deliveryFee } = JSON.parse(options.body);
+    const orderId = Date.now();
     const newOrder = {
-      id: Date.now(),
+      id: orderId,
       items,
       total,
       customer, // New: customer info
@@ -140,7 +141,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     // Note: Stock is now only deducted upon APPROVAL, as requested.
     
     await updateDb(db);
-    return { success: true };
+    return { success: true, order: newOrder };
   }
 
   if (endpoint === '/orders' && !options.method) {
@@ -149,12 +150,12 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint.startsWith('/orders/') && options.method === 'PUT') {
     const id = parseInt(endpoint.split('/').pop());
-    const { status } = JSON.parse(options.body);
+    const { status, deliveryMessage, rejectionReason } = JSON.parse(options.body);
     const order = db.orders.find(o => o.id === id);
     if (order) {
       // If status is being changed to 'completed' (approved)
       if (status === 'completed' && order.status !== 'completed') {
-        // Deduct stock from inventory
+        // ... stock deduction logic ...
         order.items.forEach(item => {
           const product = db.products.find(p => p.id === item.id);
           if (product) {
@@ -174,7 +175,11 @@ export const apiFetch = async (endpoint, options = {}) => {
           }
         });
       }
+      
       order.status = status;
+      if (deliveryMessage) order.deliveryMessage = deliveryMessage;
+      if (rejectionReason) order.rejectionReason = rejectionReason;
+      
       await updateDb(db);
     }
     return { success: true };

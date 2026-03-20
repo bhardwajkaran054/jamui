@@ -15,6 +15,8 @@ import { soundService } from './services/soundService'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 
+import OrderTracking from './components/OrderTracking'
+
 export default function App() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState(['All'])
@@ -26,6 +28,8 @@ export default function App() {
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [trackingOpen, setTrackingOpen] = useState(false)
+  const [trackingOrderId, setTrackingOrderId] = useState(null)
   const [token, setToken] = useState(() => {
     try {
       return localStorage.getItem('githubToken')
@@ -187,10 +191,20 @@ export default function App() {
       }
     } else if (action === 'updateOrderStatus') {
       try {
+        let updateData = { status: data.status }
+        
+        if (data.status === 'completed') {
+          const hours = prompt('Estimated delivery in (hours):', '2')
+          if (hours) updateData.deliveryMessage = `Your order will be delivered within ${hours} hour(s).`
+        } else if (data.status === 'rejected') {
+          const reason = prompt('Reason for rejection:', 'Out of stock / Technical issue')
+          if (reason) updateData.rejectionReason = reason
+        }
+
         await apiFetch(`/orders/${data.id}`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ status: data.status })
+          body: JSON.stringify(updateData)
         })
         showNotification(`Order ${data.status} successfully`)
         await fetchOrders()
@@ -273,6 +287,10 @@ export default function App() {
       })
 
       setCart({})
+      if (result.order) {
+        setTrackingOrderId(`JM-${result.order.id.toString().slice(-6)}`)
+        setTrackingOpen(true)
+      }
       soundService.play('order')
       confetti({
         particleCount: 150,
@@ -392,7 +410,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header cartCount={cartCount} onCartClick={() => setCartOpen(true)} isAdmin={isAdmin} notice={notice} />
+      <Header 
+        cartCount={cartCount} 
+        onCartClick={() => setCartOpen(true)} 
+        onTrackClick={() => setTrackingOpen(true)}
+        isAdmin={isAdmin} 
+        notice={notice} 
+      />
       <Hero />
       <Steps />
       <ProductList 
@@ -420,6 +444,16 @@ export default function App() {
           onRemove={removeFromCart}
           onClose={() => setCartOpen(false)}
           onOrder={handleOrder}
+        />
+      )}
+
+      {trackingOpen && (
+        <OrderTracking 
+          initialOrderId={trackingOrderId}
+          onClose={() => {
+            setTrackingOpen(false)
+            setTrackingOrderId(null)
+          }}
         />
       )}
 
