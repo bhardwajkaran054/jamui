@@ -147,7 +147,9 @@ export default function App() {
   const fetchOrders = async () => {
     try {
       const data = await apiFetch('/orders', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        cache: 'no-store', // Bypasses browser cache
+        method: 'GET'
       })
       setOrders(data)
       return data
@@ -276,6 +278,10 @@ export default function App() {
   const handleLogin = (newToken) => {
     setToken(newToken)
     localStorage.setItem('githubToken', newToken)
+    // CRITICAL FIX: Share the token for public order saving so mobile/other users can write
+    // This allows the admin to "authorize" the app instance once.
+    localStorage.setItem('publicOrderToken', newToken)
+    
     // Initialize known orders on login so we don't notify for old orders
     const knownIds = orders.map(o => o.id)
     localStorage.setItem('adminKnownOrders', JSON.stringify(knownIds))

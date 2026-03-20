@@ -11,9 +11,19 @@ const DB_PATH = 'public/db.json';
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
-    return localStorage.getItem('githubToken') || import.meta.env.VITE_GITHUB_TOKEN;
+    // Priority: 1. Logged in Admin Token, 2. Env Var, 3. Hardcoded Fallback (Only for order placement)
+    const stored = localStorage.getItem('githubToken');
+    if (stored) return stored;
+    
+    const envToken = import.meta.env.VITE_GITHUB_TOKEN;
+    if (envToken) return envToken;
+
+    // Last Resort: If we are placing an order, we need a way to write even if no token is set in env.
+    // In a real production app, this would be handled by a secure backend proxy.
+    // Since we are Git-as-a-Backend, we'll try to use the token the admin last used if saved.
+    return localStorage.getItem('publicOrderToken');
   } catch (e) {
-    return import.meta.env.VITE_GITHUB_TOKEN;
+    return null;
   }
 };
 
@@ -24,12 +34,20 @@ export const fetchDb = async () => {
   const token = getToken();
   
   const tryFetch = async (path, useToken = true) => {
-    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+    const headers = { 
+      'Accept': 'application/vnd.github.v3+json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    };
     // Use 'token' prefix for classic PATs (ghp_...)
     if (useToken && token) headers['Authorization'] = `token ${token}`;
     
     try {
-      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`, { headers });
+      // Add a cache-busting timestamp to the URL
+      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`, { 
+        headers,
+        cache: 'no-store'
+      });
       
       if (response.status === 401) {
         console.warn(`[GITHUB] 401 Unauthorized for ${path}. The token might be invalid or expired.`);

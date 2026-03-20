@@ -125,22 +125,32 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (endpoint === '/orders' && options.method === 'POST') {
     const { items, total, customer, promoCode, deliveryFee, id } = JSON.parse(options.body);
+    
+    // FETCH LATEST DB AGAIN to avoid mid-air collisions (race conditions)
+    const currentDb = await fetchDb();
+    
     const newOrder = {
       id: id || Date.now(),
       items,
       total,
-      customer, // New: customer info
-      promoCode, // New: promo code used
-      deliveryFee, // New: delivery fee
+      customer,
+      promoCode,
+      deliveryFee,
       timestamp: new Date().toISOString(),
       status: 'pending'
     };
     
-    db.orders.unshift(newOrder);
-    // Note: Stock is now only deducted upon APPROVAL, as requested.
+    // Use the absolute latest orders list
+    if (!currentDb.orders) currentDb.orders = [];
+    currentDb.orders.unshift(newOrder);
     
-    await updateDb(db);
+    await updateDb(currentDb);
     return { success: true, order: newOrder };
+  }
+
+  if (endpoint === '/orders' && options.method === 'GET') {
+    const freshDb = await fetchDb();
+    return freshDb.orders || [];
   }
 
   if (endpoint === '/orders' && !options.method) {
