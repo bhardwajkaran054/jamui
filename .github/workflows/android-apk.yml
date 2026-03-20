@@ -38,21 +38,34 @@ jobs:
           java-version: '21'
           distribution: 'zulu'
 
+      - name: Generate Keystore (if missing)
+        run: |
+          if [ ! -f android/app/jamui.keystore ]; then
+            echo "Keystore not found, generating a new one..."
+            keytool -genkey -v -keystore android/app/jamui.keystore -alias jamui -keyalg RSA -keysize 2048 -validity 10000 -storepass jamuimart -keypass jamuimart -dname "CN=Jamui Mart, OU=Development, O=Jamui Mart, L=Jamui, S=Bihar, C=IN"
+          else
+            echo "Using existing keystore from repository."
+          fi
+
       - name: Build with Gradle
         run: |
           chmod +x android/gradlew
-          cd android && ./gradlew assembleDebug --stacktrace --no-daemon
+          cd android && ./gradlew assembleRelease --stacktrace --no-daemon
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'jamuimart' }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'jamui' }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'jamuimart' }}
 
       - name: Prepare APK Folder
         run: |
           mkdir -p apk-release
-          cp android/app/build/outputs/apk/debug/app-debug.apk apk-release/jamui-supermart.apk
+          cp android/app/build/outputs/apk/release/app-release.apk apk-release/jamui-supermart-v1.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: apk-release/jamui-supermart.apk
+          name: app-release
+          path: apk-release/jamui-supermart-v1.apk
 
       - name: Update Direct Download APK [skip ci]
         uses: peaceiris/actions-gh-pages@v4
