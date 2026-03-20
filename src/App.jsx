@@ -248,7 +248,7 @@ export default function App() {
       localStorage.setItem('latestOrderId', orderId)
 
       // Attempt to save order record in GitHub Backend (Requires Token)
-      await apiFetch('/orders', {
+      const result = await apiFetch('/orders', {
         method: 'POST',
         body: JSON.stringify({ 
           id: orderId,
@@ -265,7 +265,31 @@ export default function App() {
         })
       }).catch(err => {
         console.warn('[ORDER] Could not save record to GitHub (Public access)', err.message);
+        return null
       })
+
+      // Locally update orders state so tracking finds it immediately
+      if (result && result.order) {
+        setOrders(prev => [result.order, ...prev])
+      } else {
+        // Fallback: manually create local record if save fails (so tracking still works)
+        const localOrder = {
+          id: orderId,
+          customer: customerInfo,
+          items: cartItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: cart[item.id],
+            emoji: item.emoji,
+            category: item.category
+          })),
+          total,
+          timestamp: new Date().toISOString(),
+          status: 'pending'
+        }
+        setOrders(prev => [localOrder, ...prev])
+      }
 
       setCart({})
       soundService.play('order')

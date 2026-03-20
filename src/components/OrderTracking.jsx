@@ -15,6 +15,7 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
       const found = orders.find(o => o.id.toString() === savedId.toString())
       if (found) {
         setTrackedOrder(found)
+        setError('') // Clear error if found
         // Check if this order was placed in the last 10 seconds
         const orderTime = new Date(found.timestamp).getTime()
         const now = new Date().getTime()
