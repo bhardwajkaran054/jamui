@@ -187,6 +187,66 @@
   ],
   "orders": [
     {
+      "id": 1774011669026,
+      "items": [
+        {
+          "id": 1,
+          "name": "Kasturi Rice 26 kg",
+          "price": 830,
+          "quantity": 1,
+          "emoji": "Kasturi Usna 26kg",
+          "category": "Rice"
+        },
+        {
+          "id": 2,
+          "name": "Kasturi Rice 1 kg",
+          "price": 35,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 4,
+          "name": "Fortune Mini Kit 26 kg",
+          "price": 1430,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 5,
+          "name": "Fortune Mini Kit 1 kg",
+          "price": 58,
+          "quantity": 1,
+          "emoji": "🌾",
+          "category": "Rice"
+        },
+        {
+          "id": 6,
+          "name": "Refined Oil 1 Liter",
+          "price": 135,
+          "quantity": 1,
+          "emoji": "🫙",
+          "category": "Oil"
+        },
+        {
+          "id": 7,
+          "name": "Mustard Oil 1 Liter",
+          "price": 170,
+          "quantity": 1,
+          "emoji": "🫙",
+          "category": "Oil"
+        }
+      ],
+      "total": 2658,
+      "customer": {
+        "name": "Dolly chaiwala",
+        "phone": "8888811111"
+      },
+      "timestamp": "2026-03-20T13:01:09.026Z",
+      "status": "pending"
+    },
+    {
       "id": 1774010918076,
       "items": [
         {
