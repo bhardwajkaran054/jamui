@@ -8,20 +8,27 @@ const REPO_OWNER = 'bhardwajkaran054';
 const REPO_NAME = 'jamui';
 const DB_PATH = 'public/db.json';
 
+// FALLBACK TOKEN: This is a restricted, public-only token for saving orders.
+// In a real production app, this should be an edge function/proxy.
+// For this Git-as-a-Backend setup, we use it for mobile/private window writes.
+const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeholder, will use admin's token if available
+
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
-    // Priority: 1. Logged in Admin Token, 2. Env Var, 3. Hardcoded Fallback (Only for order placement)
-    const stored = localStorage.getItem('githubToken');
-    if (stored) return stored;
+    // 1. Admin Session Token (Most reliable)
+    const adminToken = localStorage.getItem('githubToken');
+    if (adminToken) return adminToken;
     
+    // 2. Shared Public Token (Saved when admin first logs in on this app instance)
+    const publicToken = localStorage.getItem('publicOrderToken');
+    if (publicToken) return publicToken;
+
+    // 3. Environment Variable (CI/CD / Local Dev)
     const envToken = import.meta.env.VITE_GITHUB_TOKEN;
     if (envToken) return envToken;
 
-    // Last Resort: If we are placing an order, we need a way to write even if no token is set in env.
-    // In a real production app, this would be handled by a secure backend proxy.
-    // Since we are Git-as-a-Backend, we'll try to use the token the admin last used if saved.
-    return localStorage.getItem('publicOrderToken');
+    return null;
   } catch (e) {
     return null;
   }

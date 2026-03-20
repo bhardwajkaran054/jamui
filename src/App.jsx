@@ -59,14 +59,15 @@ export default function App() {
     fetchDeliveryZones()
     if (token) setIsAdmin(true)
 
-    // Polling for new orders (every 30 seconds)
+    // Polling for new orders (every 10 seconds for admin)
     const pollInterval = setInterval(async () => {
       const latestOrders = await fetchOrders()
       
       // Admin Notification Logic
       if (token && latestOrders && latestOrders.length > 0) {
         const storedOrders = JSON.parse(localStorage.getItem('adminKnownOrders') || '[]')
-        const newOrders = latestOrders.filter(o => !storedOrders.includes(o.id))
+        // Convert all IDs to strings for robust comparison
+        const newOrders = latestOrders.filter(o => !storedOrders.map(String).includes(o.id.toString()))
         
         if (newOrders.length > 0) {
           // Play sound alert
@@ -84,11 +85,11 @@ export default function App() {
           showNotification(`Received ${newOrders.length} new order(s)!`, 'success')
           
           // Update known orders
-          const updatedKnown = [...new Set([...storedOrders, ...latestOrders.map(o => o.id)])]
+          const updatedKnown = [...new Set([...storedOrders.map(String), ...latestOrders.map(o => o.id.toString())])]
           localStorage.setItem('adminKnownOrders', JSON.stringify(updatedKnown))
         }
       }
-    }, 30000)
+    }, 10000)
 
     // Secret /admin path detection
     const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
@@ -149,7 +150,12 @@ export default function App() {
       const data = await apiFetch('/orders', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         cache: 'no-store', // Bypasses browser cache
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       })
       setOrders(data)
       return data
