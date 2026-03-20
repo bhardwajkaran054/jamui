@@ -52,15 +52,23 @@ export default function App() {
 
   useEffect(() => {
     // Initial fetch from Local Storage for instant UI
-    const cached = localStorage.getItem('cachedOrders')
-    if (cached) setOrders(JSON.parse(cached))
+    try {
+      const cached = localStorage.getItem('cachedOrders')
+      if (cached) setOrders(JSON.parse(cached))
+    } catch (e) {}
 
-    fetchProducts()
-    fetchCategories()
-    fetchOrders()
-    fetchPromoCodes()
-    fetchNotice()
-    fetchDeliveryZones()
+    const initData = async () => {
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchOrders(),
+        fetchPromoCodes(),
+        fetchNotice(),
+        fetchDeliveryZones()
+      ])
+    }
+    initData()
+    
     if (token) setIsAdmin(true)
 
     // Polling for new orders (Only for admin with token to avoid rate limits)

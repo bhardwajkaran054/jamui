@@ -17,11 +17,11 @@ const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeh
 const getToken = () => {
   try {
     // 1. Admin Session Token (Most reliable)
-    const adminToken = localStorage.getItem('githubToken');
+    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
     if (adminToken) return adminToken;
     
     // 2. Shared Public Token (Saved when admin first logs in on this app instance)
-    const publicToken = localStorage.getItem('publicOrderToken');
+    const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
     if (publicToken) return publicToken;
 
     // 3. Environment Variable (CI/CD / Local Dev)
@@ -67,11 +67,12 @@ export const fetchDb = async () => {
         
         // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
         // Remove it so we don't keep failing and hitting rate limits.
-        if (response.status === 401 && useToken && token) {
+        if (response.status === 401 && useToken) {
           console.error('[GITHUB] Token is invalid. Clearing session.');
-          localStorage.removeItem('githubToken');
-          localStorage.removeItem('publicOrderToken');
-          // We don't reload here to avoid infinite loops, but the next fetch will be clean.
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('githubToken');
+            localStorage.removeItem('publicOrderToken');
+          }
         }
         return null;
       }
