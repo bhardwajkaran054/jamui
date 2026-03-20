@@ -164,8 +164,7 @@ export const updateDb = async (newData) => {
 
   const tryGetSha = async (path, useToken = true) => {
     const headers = { 
-      'Accept': 'application/vnd.github.v3+json',
-      'Cache-Control': 'no-cache'
+      'Accept': 'application/vnd.github.v3+json'
     };
     if (useToken && token) {
       headers['Authorization'] = `Bearer ${token.trim()}`;
