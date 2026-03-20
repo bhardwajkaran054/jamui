@@ -35,6 +35,9 @@ jobs:
         env:
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
 
+      - name: Ensure CNAME exists in dist
+        run: cp public/CNAME dist/CNAME || echo "jamuisupermart.in" > dist/CNAME
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
