@@ -1,15 +1,34 @@
-import { useState } from 'react'
-import { Search, X, Package, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, X, Package, Clock, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
 
 export default function OrderTracking({ orders, onClose }) {
   const [orderId, setOrderId] = useState('')
   const [trackedOrder, setTrackedOrder] = useState(null)
   const [error, setError] = useState('')
+  const [isNewOrder, setIsNewOrder] = useState(false)
+
+  useEffect(() => {
+    const savedId = localStorage.getItem('latestOrderId')
+    if (savedId) {
+      setOrderId(`JM-${savedId.toString().slice(-6)}`)
+      const found = orders.find(o => o.id.toString() === savedId.toString())
+      if (found) {
+        setTrackedOrder(found)
+        // Check if this order was placed in the last 10 seconds
+        const orderTime = new Date(found.timestamp).getTime()
+        const now = new Date().getTime()
+        if (now - orderTime < 10000) {
+          setIsNewOrder(true)
+        }
+      }
+    }
+  }, [orders])
 
   const handleTrack = (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     setError('')
     setTrackedOrder(null)
+    setIsNewOrder(false)
 
     // Format input to match ID structure (extract numbers if JM- prefix used)
     const cleanId = orderId.replace('JM-', '').trim()
@@ -39,6 +58,18 @@ export default function OrderTracking({ orders, onClose }) {
         </div>
 
         <div className="p-8 space-y-8">
+          {isNewOrder && (
+            <div className="bg-green-600 p-6 rounded-[2rem] text-white flex items-center gap-4 shadow-xl shadow-green-200 animate-in zoom-in-95 duration-500">
+              <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg leading-tight">Order Confirmed!</h3>
+                <p className="text-white/80 text-xs font-bold uppercase tracking-widest mt-0.5">Your tracking is live</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleTrack} className="space-y-4">
             <div className="relative group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
@@ -54,7 +85,7 @@ export default function OrderTracking({ orders, onClose }) {
               type="submit"
               className="w-full bg-gray-900 text-white font-black py-5 rounded-[2rem] hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200"
             >
-              Check Status
+              {trackedOrder ? 'Check Another Order' : 'Check Status'}
             </button>
           </form>
 

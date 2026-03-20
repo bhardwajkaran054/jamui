@@ -124,9 +124,9 @@ export const apiFetch = async (endpoint, options = {}) => {
   }
 
   if (endpoint === '/orders' && options.method === 'POST') {
-    const { items, total, customer, promoCode, deliveryFee } = JSON.parse(options.body);
+    const { items, total, customer, promoCode, deliveryFee, id } = JSON.parse(options.body);
     const newOrder = {
-      id: Date.now(),
+      id: id || Date.now(),
       items,
       total,
       customer, // New: customer info
@@ -140,7 +140,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     // Note: Stock is now only deducted upon APPROVAL, as requested.
     
     await updateDb(db);
-    return { success: true };
+    return { success: true, order: newOrder };
   }
 
   if (endpoint === '/orders' && !options.method) {

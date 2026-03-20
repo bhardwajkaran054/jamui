@@ -243,12 +243,15 @@ export default function App() {
 
   const handleOrder = async (cartItems, total, customerInfo) => {
     try {
+      const orderId = Date.now()
+      // Save latest order ID for automatic tracking
+      localStorage.setItem('latestOrderId', orderId)
+
       // Attempt to save order record in GitHub Backend (Requires Token)
-      // Since public users don't have tokens, this will fail.
-      // We wrap it in a try-catch to allow the WhatsApp redirect even if saving fails.
       await apiFetch('/orders', {
         method: 'POST',
         body: JSON.stringify({ 
+          id: orderId,
           customer: customerInfo,
           items: cartItems.map(item => ({
             id: item.id,
@@ -262,7 +265,6 @@ export default function App() {
         })
       }).catch(err => {
         console.warn('[ORDER] Could not save record to GitHub (Public access)', err.message);
-        // We continue anyway so the customer can still order via WhatsApp
       })
 
       setCart({})
@@ -274,11 +276,16 @@ export default function App() {
         colors: ['#166534', '#15803d', '#22c55e']
       })
       showNotification('Order ready! Redirecting to WhatsApp...')
+      
+      // Auto-open tracking after a short delay
+      setTimeout(() => {
+        setTrackingOpen(true)
+      }, 2000)
+
       return true
     } catch (err) {
-      // This catch is for any critical logic errors
       console.error('[ORDER ERROR]', err);
-      return true // Still return true to allow WhatsApp flow
+      return true
     }
   }
 
