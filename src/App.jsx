@@ -68,21 +68,28 @@ export default function App() {
       fetchNotice()
     }, 30000)
 
-    // Secret /admin path detection
-    const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
-    if (isPathAdmin) {
-      if (!passedSecret) {
-        setShowSecret(true)
-      } else if (!token) {
-        setShowLogin(true)
+    return () => clearInterval(pollInterval)
+  }, [token, passedSecret])
+
+  // Listen for hash changes to handle navigation without reloads
+  useEffect(() => {
+    const handleHashChange = () => {
+      const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
+      if (isPathAdmin) {
+        if (!passedSecret) {
+          setShowSecret(true)
+        } else if (!token) {
+          setShowLogin(true)
+        }
+      } else {
+        setShowSecret(false)
+        setShowLogin(false)
       }
-    } else {
-      // Hide admin overlays if we are not on the admin path
-      setShowSecret(false)
-      setShowLogin(false)
     }
 
-    return () => clearInterval(pollInterval)
+    window.addEventListener('hashchange', handleHashChange)
+    handleHashChange() // Initial check
+    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [token, passedSecret])
 
   const showNotification = (message, type = 'success') => {
@@ -274,7 +281,7 @@ export default function App() {
     sessionStorage.removeItem('passedSecret')
     setPassedSecret(false)
     setIsAdmin(false)
-    window.location.href = '/'
+    window.location.hash = ''
   }
 
   const handleOrder = async (cartItems, total, customerInfo) => {

@@ -39,7 +39,7 @@ export default function Header({ cartCount, onCartClick, onTrackClick, isAdmin, 
 
             {isAdmin && (
               <button
-                onClick={() => window.location.href = '/admin'}
+                onClick={() => window.location.hash = '#/admin'}
                 className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-gray-900 text-white px-5 py-3 rounded-2xl transition-all shadow-xl shadow-gray-200 active:scale-95"
               >
                 <ShieldCheck className="w-4 h-4" />

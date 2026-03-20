@@ -596,7 +596,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
           ))}
 
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => window.location.hash = ''}
             className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-blue-500 hover:bg-blue-50 transition-all border border-blue-50 mt-4"
           >
             <ShoppingBag className="w-5 h-5" />

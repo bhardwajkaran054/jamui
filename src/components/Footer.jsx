@@ -19,7 +19,7 @@ export default function Footer({ isAdmin, onLogout }) {
                   </div>
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => window.location.href = '/admin'}
+                      onClick={() => window.location.hash = '#/admin'}
                       className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-3 py-2 rounded-lg w-fit"
                     >
                       <LayoutDashboard className="w-3 h-3" />
