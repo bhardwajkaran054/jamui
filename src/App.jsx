@@ -51,6 +51,10 @@ export default function App() {
   const [isAdding, setIsAdding] = useState(false)
 
   useEffect(() => {
+    // Initial fetch from Local Storage for instant UI
+    const cached = localStorage.getItem('cachedOrders')
+    if (cached) setOrders(JSON.parse(cached))
+
     fetchProducts()
     fetchCategories()
     fetchOrders()
@@ -148,19 +152,30 @@ export default function App() {
   const fetchOrders = async () => {
     try {
       const data = await apiFetch('/orders', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        cache: 'no-store', // Bypasses browser cache
         method: 'GET',
         headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0'
-        }
+        },
+        cache: 'no-store'
       })
-      setOrders(data)
+      if (data && Array.isArray(data)) {
+        setOrders(data)
+        // Store the latest orders in local storage so other windows can see them too
+        localStorage.setItem('cachedOrders', JSON.stringify(data))
+      }
       return data
     } catch (err) {
       console.error('[API ERROR] Orders fetch failed:', err.message)
+      // Fallback to local storage if API fails
+      const cached = localStorage.getItem('cachedOrders')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        setOrders(parsed)
+        return parsed
+      }
       return []
     }
   }
@@ -311,56 +326,46 @@ export default function App() {
       // Save latest order ID for automatic tracking
       localStorage.setItem('latestOrderId', orderId)
 
-      // Attempt to save order record in GitHub Backend (Requires Token)
-      const result = await apiFetch('/orders', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          id: orderId,
-          customer: customerInfo,
-          items: cartItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: cart[item.id],
-            emoji: item.emoji,
-            category: item.category
-          })), 
-          total 
-        })
-      }).catch(err => {
-        console.warn('[ORDER] Could not save record to GitHub (Public access)', err.message);
-        return null
-      })
-
-      // Locally update orders state so tracking finds it immediately
-      if (result && result.order) {
-        setOrders(prev => [result.order, ...prev])
-      } else {
-        // Fallback: manually create local record if save fails (so tracking still works)
-        const localOrder = {
-          id: orderId,
-          customer: customerInfo,
-          items: cartItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: cart[item.id],
-            emoji: item.emoji,
-            category: item.category
-          })),
-          total,
-          timestamp: new Date().toISOString(),
-          status: 'pending'
-        }
-        setOrders(prev => [localOrder, ...prev])
+      // 1. Instant Local State Update (Frontend immediate feedback)
+      const localOrder = {
+        id: orderId,
+        customer: customerInfo,
+        items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: cart[item.id],
+          emoji: item.emoji,
+          category: item.category
+        })), 
+        total,
+        timestamp: new Date().toISOString(),
+        status: 'pending'
       }
 
+      // Update state and persistent cache immediately
+      const updatedOrders = [localOrder, ...orders]
+      setOrders(updatedOrders)
+      localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders))
+
+      // 2. Background Sync to GitHub (Async)
+      apiFetch('/orders', {
+        method: 'POST',
+        body: JSON.stringify(localOrder)
+      }).then(result => {
+        if (result && result.success) {
+          console.log('[SYNC] Order synced to cloud');
+        }
+      }).catch(err => {
+        console.warn('[SYNC ERROR] Could not save to GitHub. Order remains local.', err.message);
+      })
+
+      // 3. Complete Checkout Flow
       setCart({})
       soundService.play('order')
       
-      // Haptic feedback for mobile
       if ('vibrate' in navigator) {
-        navigator.vibrate([100, 50, 100])
+        navigator.vibrate([200, 100, 200])
       }
 
       confetti({
@@ -376,10 +381,11 @@ export default function App() {
         setTrackingOpen(true)
       }, 2000)
 
-      return true
+      return { success: true, order: localOrder }
     } catch (err) {
-      console.error('[ORDER ERROR]', err);
-      return true
+      console.error('[CRITICAL ORDER ERROR]:', err.message)
+      showNotification('Checkout failed. Please try again.', 'error')
+      return { success: false }
     }
   }
 
