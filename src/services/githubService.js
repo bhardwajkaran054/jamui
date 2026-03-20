@@ -41,18 +41,19 @@ export const fetchDb = async () => {
   const token = getToken();
   
   const tryFetch = async (path, useToken = true) => {
+    // If we don't have a token and useToken is true, skip this attempt to save time/rate-limit
+    if (useToken && !token) return null;
+
     const headers = { 
       'Accept': 'application/vnd.github.v3+json'
     };
     
-    // Use 'token' prefix for classic PATs (ghp_...)
-    // IMPORTANT: GitHub API prefers 'Authorization: token <token>' for classic PATs
     if (useToken && token) {
       headers['Authorization'] = `token ${token}`;
     }
     
     try {
-      // Use a unique query parameter for cache-busting instead of Cache-Control header (to avoid CORS preflight issues)
+      // Use a unique query parameter for cache-busting
       const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
       const response = await fetch(url, { 
         headers,
@@ -60,12 +61,17 @@ export const fetchDb = async () => {
         mode: 'cors'
       });
       
-      if (response.status === 401) {
-        console.warn(`[GITHUB] 401 Unauthorized for ${path}. The token might be invalid or expired.`);
-        // If the token in localStorage is invalid, we should probably remove it
-        if (useToken && token === localStorage.getItem('githubToken')) {
-          console.warn('[GITHUB] Removing invalid token from localStorage');
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
+        
+        // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
+        // Remove it so we don't keep failing and hitting rate limits.
+        if (response.status === 401 && useToken && token) {
+          console.error('[GITHUB] Token is invalid. Clearing session.');
           localStorage.removeItem('githubToken');
+          localStorage.removeItem('publicOrderToken');
+          // We don't reload here to avoid infinite loops, but the next fetch will be clean.
         }
         return null;
       }
@@ -86,35 +92,26 @@ export const fetchDb = async () => {
     return null;
   };
 
-  // 1. Try primary path with token
-  let data = await tryFetch(DB_PATH, true);
-  if (data) return data;
-
-  // 2. Try root path with token
-  if (DB_PATH.includes('/')) {
-    data = await tryFetch(DB_PATH.split('/').pop(), true);
+  // NEW STRATEGY:
+  // 1. If admin (has token), try REST API with token first (Highest fresh priority)
+  if (token) {
+    const data = await tryFetch(DB_PATH, true);
     if (data) return data;
   }
 
-  // 3. Try primary path without token
-  data = await tryFetch(DB_PATH, false);
-  if (data) return data;
-
-  // 4. Fallback to raw content
+  // 2. If not admin OR REST API failed, try Raw GitHub Content (Safe from rate limits, read-only)
   try {
-    const response = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`);
-    if (response.ok) return await response.json();
-    
-    // Try raw root path
-    if (DB_PATH.includes('/')) {
-      const responseRoot = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH.split('/').pop()}?t=${Date.now()}`);
-      if (responseRoot.ok) return await responseRoot.json();
+    const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
+    const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
+    if (rawResponse.ok) {
+      return await rawResponse.json();
     }
   } catch (err) {
-    console.error('[GITHUB] Raw fallback failed:', err.message);
+    console.warn('[GITHUB] Raw fetch failed:', err.message);
   }
 
-  throw new Error('Failed to fetch database from GitHub. Please check your internet connection or repository settings.');
+  // 3. Last fallback: Try REST API without token (Only if everything else failed)
+  return await tryFetch(DB_PATH, false);
 };
 
 /**

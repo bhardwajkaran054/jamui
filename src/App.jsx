@@ -67,35 +67,37 @@ export default function App() {
     let pollInterval = null;
     if (token) {
       pollInterval = setInterval(async () => {
-        const latestOrders = await fetchOrders()
-        
-        // Admin Notification Logic
-        if (latestOrders && latestOrders.length > 0) {
-          const storedOrders = JSON.parse(localStorage.getItem('adminKnownOrders') || '[]')
-          // Convert all IDs to strings for robust comparison
-          const newOrders = latestOrders.filter(o => !storedOrders.map(String).includes(o.id.toString()))
+        try {
+          const latestOrders = await fetchOrders()
           
-          if (newOrders.length > 0) {
-            // Play sound alert
-            soundService.play('order')
+          // Admin Notification Logic
+          if (latestOrders && latestOrders.length > 0) {
+            const storedOrders = JSON.parse(localStorage.getItem('adminKnownOrders') || '[]')
+            const newOrders = latestOrders.filter(o => !storedOrders.map(String).includes(o.id.toString()))
             
-            // Browser notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('Jamui Super Mart Admin', {
-                body: `You have ${newOrders.length} new order(s) waiting for approval!`,
-                icon: '/favicon.svg'
-              })
+            if (newOrders.length > 0) {
+              soundService.play('order')
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Jamui Super Mart Admin', {
+                  body: `You have ${newOrders.length} new order(s) waiting for approval!`,
+                  icon: '/favicon.svg'
+                })
+              }
+              showNotification(`Received ${newOrders.length} new order(s)!`, 'success')
+              const updatedKnown = [...new Set([...storedOrders.map(String), ...latestOrders.map(o => o.id.toString())])]
+              localStorage.setItem('adminKnownOrders', JSON.stringify(updatedKnown))
             }
-            
-            // Show toast
-            showNotification(`Received ${newOrders.length} new order(s)!`, 'success')
-            
-            // Update known orders
-            const updatedKnown = [...new Set([...storedOrders.map(String), ...latestOrders.map(o => o.id.toString())])]
-            localStorage.setItem('adminKnownOrders', JSON.stringify(updatedKnown))
+          }
+        } catch (err) {
+          console.warn('[POLLING] Failed to fetch updates. Skipping this interval.');
+          // If the error is 401, the token was already cleared by githubService
+          if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+            clearInterval(pollInterval);
+            setIsAdmin(false);
+            setToken(null);
           }
         }
-      }, 10000)
+      }, 15000) // Increased to 15s to be more gentle
     }
 
     // Secret /admin path detection
