@@ -40,27 +40,40 @@ Experience Jamui Super Mart as a native application on your Android device.
 graph TD
     %% User/Customer Flow
     Customer((Customer)) -->|Browse| Storefront[React Storefront]
-    Storefront -->|Quick Checkout| Cart{Cart System}
+    Storefront -->|Search/Filter| Products[Product List]
+    Products -->|Quick Checkout| Cart{Cart System}
     Cart -->|Validation| Validation[Name & Phone Check]
     Validation -->|Success| WhatsApp[WhatsApp Redirect]
     Validation -->|Success| GH_API[GitHub API - Save Order]
-
+    
+    %% Order Tracking & History
+    Storefront -->|Track Order| Tracking[Order Tracking Modal]
+    Tracking -->|Search ID| SingleOrder[Live Status Tracking]
+    Tracking -->|Search Phone| OrderHistory[My Order History]
+    SingleOrder -->|Polling| LiveUpdate[Live Status Refresh 10s]
+    LiveUpdate -->|Status Changed| Notify[Browser/Push Notification]
+    LiveUpdate -->|Status Changed| Haptics[Mobile Haptic/Sound]
+    GH_API <--> Tracking
+    
     %% Admin Flow
     Admin((Admin)) -->|Auth| Login[Admin Login]
-    Login -->|Access| Dashboard[Admin Dashboard v4.0]
+    Login -->|Access| Dashboard[Admin Dashboard v5.0]
     
     subgraph Dashboard_Features [Admin Suite]
-        Analytics[Live Sales Analytics]
+        Analytics[Sales & Customer Analytics]
         Orders[Order Management]
         Inventory[Stock & Product Editor]
         Promo[Promo Code Manager]
         Notices[Notice Board Banner]
+        Zones[Delivery Zones Manager]
         Logs[Stock History Audit]
     end
     
     Dashboard --> Dashboard_Features
-    Orders -->|Approve| StockUpdate[Auto Stock Deduction]
+    Orders -->|Approve| EstDelivery[Set Est. Delivery Time]
+    EstDelivery -->|Update| StockUpdate[Auto Stock Deduction]
     Orders -->|Print| PDF[Professional PDF Invoice]
+    Orders -->|Share| WA_Invoice[WhatsApp Invoice + Tracking Link]
     Inventory -->|Toggle| Media[Icon vs Photo Toggle]
 
     %% CI/CD & Build Flow
