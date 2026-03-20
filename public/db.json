@@ -41,11 +41,13 @@
     {
       "id": 6,
       "name": "Refined Oil 1 Liter",
-      "price": 135,
+      "price": 140,
       "unit": "1L",
       "category": "Oil",
       "emoji": "🫙",
-      "stock": 30
+      "stock": 30,
+      "useImage": false,
+      "image": ""
     },
     {
       "id": 7,
