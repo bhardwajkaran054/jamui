@@ -220,7 +220,8 @@
         "phone": "1111122222"
       },
       "timestamp": "2026-03-20T13:16:52.104Z",
-      "status": "pending"
+      "status": "rejected",
+      "rejectionReason": "Out of stock / Technical issue"
     },
     {
       "id": 1774011669026,
