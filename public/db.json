@@ -117,7 +117,7 @@
       "unit": "1kg",
       "category": "Dal",
       "emoji": "🫘",
-      "stock": 14
+      "stock": 13
     },
     {
       "id": 15,
@@ -152,7 +152,7 @@
       "unit": "KG",
       "category": "Veg",
       "emoji": "🥔",
-      "stock": 90,
+      "stock": 89,
       "id": 18
     },
     {
@@ -163,7 +163,7 @@
       "emoji": "🫘",
       "image": "https://media.gettyimages.com/id/1912193566/photo/full-frame-macro-shot-of-brown-rice-background-food-texture.jpg?s=612x612&w=0&k=20&c=nvV_LCnxO58IaJzxfJ3QDd201L9TAUMokIwK3amaAtk=",
       "useImage": true,
-      "stock": 10,
+      "stock": 9,
       "id": 19
     },
     {
@@ -174,7 +174,7 @@
       "emoji": "🫘",
       "image": "",
       "useImage": false,
-      "stock": 100,
+      "stock": 99,
       "id": 20
     }
   ],
@@ -228,7 +228,7 @@
         "phone": "9999999999"
       },
       "timestamp": "2026-03-20T01:17:08.643Z",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 1773969065245,
@@ -302,6 +302,42 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773969453981.7336,
+      "productId": 20,
+      "productName": "Milk",
+      "oldStock": 100,
+      "newStock": 99,
+      "reason": "Order Approved (#JM-428643)",
+      "timestamp": "2026-03-20T01:17:33.981Z"
+    },
+    {
+      "id": 1773969453981.023,
+      "productId": 19,
+      "productName": "test",
+      "oldStock": 10,
+      "newStock": 9,
+      "reason": "Order Approved (#JM-428643)",
+      "timestamp": "2026-03-20T01:17:33.981Z"
+    },
+    {
+      "id": 1773969453981.9172,
+      "productId": 18,
+      "productName": "Allu",
+      "oldStock": 90,
+      "newStock": 89,
+      "reason": "Order Approved (#JM-428643)",
+      "timestamp": "2026-03-20T01:17:33.981Z"
+    },
+    {
+      "id": 1773969453981.2524,
+      "productId": 14,
+      "productName": "Kabuli Chana 1 kg",
+      "oldStock": 14,
+      "newStock": 13,
+      "reason": "Order Approved (#JM-428643)",
+      "timestamp": "2026-03-20T01:17:33.981Z"
+    },
     {
       "id": 1773940093459,
       "productId": 20,
