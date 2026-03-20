@@ -7,7 +7,7 @@
       "unit": "26kg",
       "category": "Rice",
       "emoji": "Kasturi Usna 26kg",
-      "stock": 9,
+      "stock": 8,
       "useImage": false,
       "image": ""
     },
@@ -18,7 +18,7 @@
       "unit": "1kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 48
+      "stock": 47
     },
     {
       "id": 4,
@@ -27,7 +27,7 @@
       "unit": "26kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 6
+      "stock": 5
     },
     {
       "id": 5,
@@ -36,7 +36,7 @@
       "unit": "1kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 39
+      "stock": 38
     },
     {
       "id": 6,
@@ -232,8 +232,9 @@
         "phone": "1234567890"
       },
       "timestamp": "2026-03-20T04:19:39.419Z",
-      "status": "rejected",
-      "rejectReason": "Item out of stock"
+      "status": "completed",
+      "rejectReason": "Item out of stock",
+      "estimatedDelivery": "30-45 mins"
     },
     {
       "id": 1773973604576,
@@ -426,6 +427,42 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773982186005.8462,
+      "productId": 5,
+      "productName": "Fortune Mini Kit 1 kg",
+      "oldStock": 39,
+      "newStock": 38,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.005Z"
+    },
+    {
+      "id": 1773982186004.833,
+      "productId": 4,
+      "productName": "Fortune Mini Kit 26 kg",
+      "oldStock": 6,
+      "newStock": 5,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.004Z"
+    },
+    {
+      "id": 1773982186004.0662,
+      "productId": 2,
+      "productName": "Kasturi Rice 1 kg",
+      "oldStock": 48,
+      "newStock": 47,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.004Z"
+    },
+    {
+      "id": 1773982186004.931,
+      "productId": 1,
+      "productName": "Kasturi Rice 26 kg",
+      "oldStock": 9,
+      "newStock": 8,
+      "reason": "Order Approved (#JM-379419)",
+      "timestamp": "2026-03-20T04:49:46.004Z"
+    },
     {
       "id": 1773976562130,
       "productId": 19,
