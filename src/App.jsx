@@ -5,6 +5,7 @@ import Steps from './components/Steps'
 import ProductList from './components/ProductList'
 import Cart from './components/Cart'
 import Footer from './components/Footer'
+import OrderTracking from './components/OrderTracking'
 import AdminLogin from './components/AdminLogin'
 import SecretChallenge from './components/SecretChallenge'
 import AdminDashboard from './components/AdminDashboard'
@@ -25,6 +26,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
+  const [trackingOpen, setTrackingOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [token, setToken] = useState(() => {
     try {
@@ -383,7 +385,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header cartCount={cartCount} onCartClick={() => setCartOpen(true)} isAdmin={isAdmin} notice={notice} />
+      <Header 
+        cartCount={cartCount} 
+        onCartClick={() => setCartOpen(true)} 
+        onTrackClick={() => setTrackingOpen(true)}
+        isAdmin={isAdmin} 
+        notice={notice} 
+      />
       <Hero />
       <Steps />
       <ProductList 
@@ -400,6 +408,13 @@ export default function App() {
         isAdmin={isAdmin} 
         onLogout={handleLogout}
       />
+
+      {trackingOpen && (
+        <OrderTracking 
+          orders={orders} 
+          onClose={() => setTrackingOpen(false)} 
+        />
+      )}
       
       {cartOpen && (
         <Cart

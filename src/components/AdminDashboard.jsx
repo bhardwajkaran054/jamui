@@ -23,7 +23,8 @@ import {
   Tag,
   Bell,
   Menu,
-  X
+  X,
+  Download
 } from 'lucide-react'
 import { apiFetch } from '../api'
 import {
@@ -211,7 +212,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const lowStockItems = products.filter(p => p.stock <= 5)
   const totalProducts = products.length
   const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0)
-  const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0)
+  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((acc, o) => acc + o.total, 0)
 
   const generatePDFInvoice = (order) => {
     // Generate unique content for the new window
@@ -357,10 +358,41 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     }
   }
 
+  const exportToCSV = () => {
+    if (orders.length === 0) return;
+    
+    const headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Total Amount', 'Status', 'Items'];
+    const rows = orders.map(order => [
+      `JM-${order.id.toString().slice(-6)}`,
+      new Date(order.timestamp).toLocaleDateString(),
+      order.customer?.name || 'Guest',
+      order.customer?.phone || 'N/A',
+      order.total,
+      order.status,
+      order.items.map(i => `${i.name}(x${i.quantity})`).join('; ')
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `jamui_orders_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   // Enhanced Chart Data Preparation
   const categoryData = categories.filter(c => c !== 'All').map(cat => {
     const count = products.filter(p => p.category === cat).length
-    return { category: cat, count }
+    const total = orders.filter(o => o.items.some(i => i.category === cat) && o.status === 'completed').reduce((acc, o) => acc + o.total, 0)
+    return { category: cat, count, total }
   })
 
   // Sales Calendar Data (Revenue per day of current month)
@@ -581,12 +613,15 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                     <div key={item.category} className="space-y-2">
                       <div className="flex justify-between text-sm font-black uppercase tracking-wider text-gray-500">
                         <span>{item.category}</span>
-                        <span>Count: {item.count}</span>
+                        <div className="flex gap-4">
+                          <span>Items: {item.count}</span>
+                          <span className="text-green-600">₹{item.total}</span>
+                        </div>
                       </div>
                       <div className="h-3 bg-gray-50 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
-                          style={{ width: `${(item.count / totalProducts) * 100}%` }}
+                          style={{ width: `${(item.total / (totalRevenue || 1)) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -861,6 +896,13 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                 <button onClick={fetchOrders} className="bg-white border border-gray-100 p-4 rounded-2xl hover:bg-gray-50 transition-all shadow-sm group">
                   <Activity className={`w-5 h-5 text-gray-400 group-hover:text-green-600 ${loading ? 'animate-spin' : ''}`} />
                 </button>
+                <button 
+                  onClick={exportToCSV}
+                  title="Export to CSV"
+                  className="bg-white border border-gray-100 p-4 rounded-2xl hover:bg-gray-50 transition-all shadow-sm group"
+                >
+                  <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                </button>
               </div>
             </header>
 
@@ -1004,7 +1046,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                             onClick={() => generatePDFInvoice(order)}
                             className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-black px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
                           >
-                            <ShoppingBag className="w-5 h-5" />
+                            <Download className="w-5 h-5" />
                             PDF
                           </button>
 
