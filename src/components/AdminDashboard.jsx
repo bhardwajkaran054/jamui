@@ -21,7 +21,9 @@ import {
   ChevronRight,
   User,
   Tag,
-  Bell
+  Bell,
+  Menu,
+  X
 } from 'lucide-react'
 import { apiFetch } from '../api'
 import {
@@ -55,6 +57,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const [orders, setOrders] = useState(initialOrders || [])
   const [loading, setLoading] = useState(false)
   const [orderFilter, setOrderFilter] = useState('pending') // Default to pending for approval flow
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [customers, setCustomers] = useState([])
   const [promoCodes, setPromoCodes] = useState([])
   const [stockLogs, setStockLogs] = useState([])
@@ -252,19 +255,33 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
         </head>
         <body>
           <div class="invoice-container">
-            <div class="header">
-              <div class="logo-section">
-                <h1>JAMUI SUPER MART</h1>
-                <p>Professional Grocery Services</p>
+              <div class="header">
+                <div class="logo-section">
+                  <h1>JAMUI SUPER MART</h1>
+                  <p>Professional Grocery Services</p>
+                </div>
+                <div class="order-info">
+                  <p class="order-id">${orderId}</p>
+                  <p style="color: #9ca3af;">Date: ${date}</p>
+                  <p style="color: ${order.status === 'completed' ? '#16a34a' : '#f59e0b'};">Status: ${order.status.toUpperCase()}</p>
+                </div>
               </div>
-              <div class="order-info">
-                <p class="order-id">${orderId}</p>
-                <p style="color: #9ca3af;">Date: ${date}</p>
-                <p style="color: ${order.status === 'completed' ? '#16a34a' : '#f59e0b'};">Status: ${order.status.toUpperCase()}</p>
+
+              <div style="margin-bottom: 30px; padding: 20px; background: #f9fafb; border-radius: 16px; border: 1px solid #f3f4f6;">
+                <p style="margin: 0 0 10px 0; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em;">Customer Details</p>
+                <div style="display: flex; gap: 40px;">
+                  <div>
+                    <p style="margin: 0; font-size: 12px; color: #6b7280;">Name</p>
+                    <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 700; color: #111827;">${order.customer?.name || 'Guest Customer'}</p>
+                  </div>
+                  <div>
+                    <p style="margin: 0; font-size: 12px; color: #6b7280;">WhatsApp</p>
+                    <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 700; color: #111827;">${order.customer?.phone || 'N/A'}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <table>
+              
+              <table>
               <thead>
                 <tr>
                   <th style="text-align: left;">Item Description</th>
@@ -412,125 +429,62 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row overflow-hidden h-screen">
+      {/* Mobile Sidebar Toggle */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed bottom-8 right-8 z-[110] bg-green-600 text-white p-4 rounded-full shadow-2xl active:scale-95 transition-all"
+      >
+        {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
       {/* Sidebar */}
-      <aside className="w-full md:w-80 bg-white border-r border-gray-100 p-8 flex flex-col">
+      <aside className={`
+        fixed inset-y-0 left-0 z-[100] w-72 bg-white border-r border-gray-100 p-8 flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+      `}>
         <div className="flex items-center gap-3 mb-12">
           <div className="bg-green-600 p-3 rounded-2xl shadow-lg shadow-green-200">
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
             <h2 className="text-xl font-black text-gray-900 leading-tight">Admin</h2>
-            <p className="text-xs text-green-600 font-bold uppercase tracking-widest">Dashboard v3.0</p>
+            <p className="text-xs text-green-600 font-bold uppercase tracking-widest">Dashboard v4.0</p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-2">
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'analytics' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <BarChart3 className="w-5 h-5" />
-            Analytics
-          </button>
-
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'orders' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <ClipboardList className="w-5 h-5" />
-            Orders
-            <span className="ml-auto bg-green-100 text-green-700 px-2 py-0.5 rounded-lg text-xs">{orders.length}</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'inventory' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <Package className="w-5 h-5" />
-            Inventory
-          </button>
-
-          <button
-            onClick={() => setActiveTab('categories')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'categories' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <LayoutGrid className="w-5 h-5" />
-            Categories
-          </button>
-
-          <button
-            onClick={() => setActiveTab('customers')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'customers' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            Customers
-          </button>
-
-          <button
-            onClick={() => setActiveTab('promo-codes')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'promo-codes' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <Tag className="w-5 h-5" />
-            Promo Codes
-          </button>
-
-          <button
-            onClick={() => setActiveTab('delivery-zones')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'delivery-zones' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <ShoppingBag className="w-5 h-5" />
-            Delivery Zones
-          </button>
-
-          <button
-            onClick={() => setActiveTab('notices')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'notices' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <MessageSquare className="w-5 h-5" />
-            Notice Board
-          </button>
-
-          <button
-            onClick={() => setActiveTab('stock-logs')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'stock-logs' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <Clock className="w-5 h-5" />
-            Stock Logs
-          </button>
-
-          <button
-            onClick={() => setActiveTab('alerts')}
-            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
-              activeTab === 'alerts' ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-            }`}
-          >
-            <Bell className="w-5 h-5" />
-            Stock Alerts
-            {lowStockItems.length > 0 && (
-              <span className="ml-auto bg-red-100 text-red-700 px-2 py-0.5 rounded-lg text-xs animate-pulse">
-                {lowStockItems.length}
-              </span>
-            )}
-          </button>
+        <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
+          {[
+            { id: 'analytics', label: 'Dashboard', icon: BarChart3 },
+            { id: 'orders', label: 'Order Records', icon: ClipboardList, count: orders.filter(o => o.status === 'pending').length },
+            { id: 'inventory', label: 'Store Inventory', icon: Package },
+            { id: 'categories', label: 'Product Groups', icon: LayoutGrid },
+            { id: 'customers', label: 'Customers', icon: User },
+            { id: 'promo-codes', label: 'Promo Codes', icon: Tag },
+            { id: 'delivery-zones', label: 'Delivery Zones', icon: ShoppingBag },
+            { id: 'notices', label: 'Notice Board', icon: MessageSquare },
+            { id: 'stock-logs', label: 'Stock History', icon: Clock },
+            { id: 'alerts', label: 'Stock Alerts', icon: Bell, count: lowStockItems.length }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id)
+                setIsSidebarOpen(false)
+              }}
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all relative ${
+                activeTab === tab.id ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+              }`}
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="flex-1 text-left">{tab.label}</span>
+              {tab.count > 0 && (
+                <span className={`bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full ${tab.id === 'alerts' ? 'animate-pulse' : ''}`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
 
           <button
             onClick={() => window.location.href = '/'}
@@ -553,7 +507,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
 
         <button
           onClick={onLogout}
-          className="mt-12 flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all border border-red-50"
+          className="mt-8 flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all border border-red-50"
         >
           <LogOut className="w-5 h-5" />
           Logout
@@ -561,7 +515,20 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-12 overflow-y-auto max-h-screen">
+      <main className="flex-1 p-4 md:p-12 overflow-y-auto max-h-screen relative">
+        {/* Mobile Header Overlay */}
+        <div className="lg:hidden flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight capitalize">{activeTab}</h1>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Admin Dashboard</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <User className="w-5 h-5 text-green-600" />
+            </div>
+          </div>
+        </div>
+
         {activeTab === 'analytics' ? (
           <div className="space-y-10 animate-in fade-in duration-500">
             {/* Stats Overview */}
@@ -930,6 +897,25 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                           <div>
                             <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Order ID</p>
                             <h4 className="text-xl font-black text-gray-900">#JM-{order.id.toString().slice(-6)}</h4>
+                          </div>
+                        </div>
+
+                        {/* New: Customer Quick Info */}
+                        <div className="bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100">
+                          <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-3">Customer Information</p>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                <User className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <p className="text-sm font-black text-gray-800">{order.customer?.name || 'Guest'}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                <MessageSquare className="w-4 h-4 text-green-600" />
+                              </div>
+                              <p className="text-sm font-black text-gray-800">{order.customer?.phone || 'N/A'}</p>
+                            </div>
                           </div>
                         </div>
 
