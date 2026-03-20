@@ -1,5 +1,30 @@
 {
   "appId": "com.jamui.supermart",
   "appName": "Jamui Super Mart",
-  "webDir": "dist"
+  "webDir": "dist",
+  "backgroundColor": "#166534",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#166534",
+    "fullScreenByDefault": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#166534",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": true,
+      "androidSpinnerStyle": "large",
+      "spinnerColor": "#ffffff",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#166534",
+      "overlaysWebView": true
+    }
+  }
 }

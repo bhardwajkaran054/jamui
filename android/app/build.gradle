@@ -3,6 +3,16 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.jamui.supermart"
     compileSdk = rootProject.ext.compileSdkVersion
+    
+    signingConfigs {
+        release {
+            storeFile file("jamui.keystore")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "jamuimart"
+            keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "jamui"
+            keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: "jamuimart"
+        }
+    }
+
     defaultConfig {
         applicationId "com.jamui.supermart"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,6 +30,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }

@@ -9,3 +9,24 @@
 html {
   scroll-behavior: smooth;
 }
+
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+  padding-top: var(--safe-area-inset-top);
+  padding-bottom: var(--safe-area-inset-bottom);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile full-screen enhancements */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
