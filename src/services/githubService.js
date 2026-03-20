@@ -96,7 +96,7 @@ export const fetchDb = async () => {
     };
 
     if (useToken && token) {
-      headers['Authorization'] = `token ${token.trim()}`;
+      headers['Authorization'] = `Bearer ${token.trim()}`;
     }
 
     try {
@@ -163,8 +163,13 @@ export const updateDb = async (newData) => {
   let finalPath = DB_PATH;
 
   const tryGetSha = async (path, useToken = true) => {
-    const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (useToken && token) headers['Authorization'] = `token ${token.trim()}`;
+    const headers = { 
+      'Accept': 'application/vnd.github.v3+json',
+      'Cache-Control': 'no-cache'
+    };
+    if (useToken && token) {
+      headers['Authorization'] = `Bearer ${token.trim()}`;
+    }
     
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
     const response = await fetch(url, {
@@ -221,7 +226,7 @@ export const updateDb = async (newData) => {
   const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${finalPath}`, {
     method: 'PUT',
     headers: {
-      'Authorization': `token ${token.trim()}`,
+      'Authorization': `Bearer ${token.trim()}`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
@@ -253,11 +258,14 @@ export const updateDb = async (newData) => {
  * Validates a GitHub Token by checking repository access
  */
 export const validateToken = async (token) => {
+  if (!token) return false;
+  const cleanToken = token.trim();
+  
   try {
     // 1. First, check if the token is valid by getting the authenticated user
     const userResponse = await fetch('https://api.github.com/user', {
       headers: { 
-        'Authorization': `token ${token}`,
+        'Authorization': `Bearer ${cleanToken}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
@@ -276,7 +284,7 @@ export const validateToken = async (token) => {
     for (const owner of repoOwners) {
       const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${REPO_NAME}`, {
         headers: { 
-          'Authorization': `token ${token}`,
+          'Authorization': `Bearer ${cleanToken}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });

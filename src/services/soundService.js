@@ -7,17 +7,46 @@ const sounds = {
 class SoundService {
   constructor() {
     this.audioElements = {};
-    Object.keys(sounds).forEach(key => {
-      this.audioElements[key] = new Audio(sounds[key]);
-      this.audioElements[key].preload = 'auto';
-    });
+    this.initialized = false;
+    this.init();
   }
 
-  play(key) {
+  init() {
+    if (typeof window === 'undefined') return;
+    Object.keys(sounds).forEach(key => {
+      try {
+        const audio = new Audio();
+        audio.src = sounds[key];
+        audio.preload = 'auto';
+        this.audioElements[key] = audio;
+      } catch (e) {
+        console.warn(`[SOUND] Failed to initialize sound "${key}":`, e);
+      }
+    });
+    this.initialized = true;
+  }
+
+  async play(key) {
+    if (!this.initialized) this.init();
+    
     const audio = this.audioElements[key];
-    if (audio) {
+    if (!audio) return;
+
+    try {
       audio.currentTime = 0;
-      audio.play().catch(e => console.warn('Sound blocked by browser policy:', e));
+      await audio.play();
+    } catch (e) {
+      if (e.name === 'NotSupportedError') {
+        console.warn(`[SOUND] Sound "${key}" not supported or blocked. Attempting to reload source.`);
+        // Try to re-assign source if it failed
+        audio.src = sounds[key];
+        audio.load();
+      } else if (e.name === 'NotAllowedError') {
+        // This is expected if user hasn't interacted with the page yet
+        console.log('[SOUND] Playback blocked until user interaction');
+      } else {
+        console.warn(`[SOUND] Error playing "${key}":`, e);
+      }
     }
   }
 }
