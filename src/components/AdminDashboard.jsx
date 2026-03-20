@@ -118,6 +118,12 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     }
   }
 
+  const handleDisablePublicOrders = () => {
+    if (confirm('Disable Public Orders?\n\nCustomers will no longer be able to place orders in private windows until you re-authorize.')) {
+      handleUpdateSettings({ ...settings, publicOrderToken: '' });
+    }
+  }
+
   const fetchDrivers = async () => {
     try {
       setLoading(true)
@@ -1341,16 +1347,27 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                           : 'Public orders are currently disabled because no token is authorized. Customers will see an error when trying to order.'}
                       </p>
                     </div>
-                    <button 
-                      onClick={handleAuthorizePublicOrders}
-                      className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
-                        settings.publicOrderToken 
-                          ? 'bg-white text-green-600 hover:bg-green-600 hover:text-white shadow-green-100 border border-green-200' 
-                          : 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-100'
-                      }`}
-                    >
-                      {settings.publicOrderToken ? 'Re-Authorize Store' : 'Enable Public Orders'}
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={handleAuthorizePublicOrders}
+                        className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
+                          settings.publicOrderToken 
+                            ? 'bg-white text-green-600 hover:bg-green-600 hover:text-white shadow-green-100 border border-green-200' 
+                            : 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-100'
+                        }`}
+                      >
+                        {settings.publicOrderToken ? 'Re-Authorize Store' : 'Enable Public Orders'}
+                      </button>
+                      
+                      {settings.publicOrderToken && (
+                        <button 
+                          onClick={handleDisablePublicOrders}
+                          className="px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all active:scale-95"
+                        >
+                          Disable Public Orders
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

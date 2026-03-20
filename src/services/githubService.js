@@ -42,12 +42,21 @@ const getToken = () => {
  * Set a public token for orders (retrieved from DB settings)
  */
 export const setPublicOrderToken = (encodedToken) => {
-  if (!encodedToken) return;
+  if (!encodedToken) {
+    localStorage.removeItem('publicOrderToken');
+    return;
+  }
   try {
     // Decode logic: Base64 decode, then reverse back to original
     const reversed = atob(encodedToken);
     const original = reversed.split('').reverse().join('');
     localStorage.setItem('publicOrderToken', original);
+    
+    // Also clear any "bad token" flag for this specific token to allow retries
+    const badToken = sessionStorage.getItem('badGithubToken');
+    if (badToken === original) {
+      sessionStorage.removeItem('badGithubToken');
+    }
   } catch (e) {
     console.error('[GITHUB] Failed to set public token:', e);
   }
