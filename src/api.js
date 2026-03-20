@@ -33,7 +33,8 @@ export const apiFetch = async (endpoint, options = {}) => {
         window.dispatchEvent(new CustomEvent('github-token-cleared'));
       }
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      console.error(`[API FETCH ERROR] ${url}:`, errorData.error || response.statusText);
+      return null; // Return null instead of throwing to allow component-level handling
     }
 
     return response.json();
