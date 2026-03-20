@@ -65,6 +65,9 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const [notices, setNotices] = useState({ text: '', active: false })
   const [deliveryZones, setDeliveryZones] = useState([])
 
+  const [lastSync, setLastSync] = useState(new Date())
+  const [syncStatus, setSyncStatus] = useState('synced') // 'synced', 'syncing', 'error'
+
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders)
     if (activeTab === 'customers') fetchCustomers()
@@ -73,6 +76,14 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
     if (activeTab === 'notices') fetchNotices()
     if (activeTab === 'delivery-zones') fetchDeliveryZones()
   }, [initialOrders, activeTab])
+
+  // Sync Timer for indicator
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLastSync(new Date())
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   const fetchCustomers = async () => {
     try {
@@ -555,13 +566,44 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
         <div className="lg:hidden flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight capitalize">{activeTab}</h1>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Admin Dashboard</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Admin Dashboard</p>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100">
+                <div className={`w-1 h-1 rounded-full ${syncStatus === 'synced' ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`} />
+                <span className="text-[8px] font-black text-green-600 uppercase">Live</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
               <User className="w-5 h-5 text-green-600" />
             </div>
           </div>
+        </div>
+
+        {/* Desktop Sync Indicator */}
+        <div className="hidden lg:flex absolute top-12 right-12 items-center gap-4 bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 z-10">
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${syncStatus === 'synced' ? 'text-green-600' : 'text-orange-600'}`}>
+                {syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...'}
+              </span>
+              <div className={`w-2 h-2 rounded-full ${syncStatus === 'synced' ? 'bg-green-500 shadow-lg shadow-green-200 animate-pulse' : 'bg-orange-500 animate-spin'}`} />
+            </div>
+            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Last Update: {lastSync.toLocaleTimeString()}</p>
+          </div>
+          <button 
+            onClick={async () => {
+              setSyncStatus('syncing');
+              await fetchOrders();
+              setLastSync(new Date());
+              setSyncStatus('synced');
+            }}
+            className="p-2 hover:bg-gray-50 rounded-xl transition-all active:scale-95 group"
+            title="Force Refresh"
+          >
+            <Activity className={`w-4 h-4 text-gray-400 group-hover:text-green-600 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {activeTab === 'analytics' ? (
@@ -776,14 +818,14 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Order Processing</span>
-                    <span className="text-xs font-black text-blue-400 uppercase">100% Active</span>
+                    <span className="text-sm font-bold text-gray-400">Public Writes</span>
+                    <span className={`text-xs font-black uppercase ${import.meta.env.VITE_GITHUB_TOKEN ? 'text-blue-400' : 'text-red-400'}`}>
+                      {import.meta.env.VITE_GITHUB_TOKEN ? 'Enabled' : 'Token Missing'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-bold text-gray-400">Last Sync</span>
-                    <span className="text-xs font-black text-gray-300 uppercase">
-                      {new Date().toLocaleTimeString()}
-                    </span>
+                    <span className="text-sm font-bold text-gray-400">Auto-Polling</span>
+                    <span className="text-xs font-black text-blue-400 uppercase">30s Active</span>
                   </div>
                 </div>
               </div>

@@ -404,7 +404,7 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
                         <p className="text-[8px] text-green-500 font-bold mt-0.5">Success</p>
                       )}
                       {trackedOrder.status === 'rejected' && (
-                        <p className="text-[8px] text-red-500 font-bold mt-0.5">Failed</p>
+                        <p className="text-[8px] text-red-500 font-bold mt-0.5">Order Denied</p>
                       )}
                     </div>
                   </div>
