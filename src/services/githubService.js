@@ -17,7 +17,7 @@ const CACHE_TTL = 5000; // 5 seconds (Reduced from 30s or other for better real-
 // FALLBACK TOKEN: This is a restricted, public-only token for saving orders.
 // In a real production app, this should be an edge function/proxy.
 // For this Git-as-a-Backend setup, we use it for mobile/private window writes.
-const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeholder, will use admin's token if available
+const PUBLIC_WRITE_TOKEN = ''; // Use VITE_GITHUB_TOKEN or localStorage instead
 
 // Helper to get token from storage or environment
 const getToken = () => {
