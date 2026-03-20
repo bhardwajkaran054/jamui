@@ -1,8 +1,8 @@
 /**
  * API Configuration
- * Always uses local Node.js backend with Turso database
+ * - Local dev: Uses /api (proxies to local Express server)
+ * - Production: Uses VITE_API_URL env var pointing to Railway
  */
-export const BACKEND_MODE = 'local-node-backend';
 export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
