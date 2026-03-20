@@ -16,21 +16,43 @@ const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeh
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
-    // 1. Admin Session Token (Most reliable)
-    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
-    if (adminToken) return adminToken.trim();
+    // 1. Check for a blacklisted token first (to avoid repeating known failures in this session)
+    const badToken = typeof window !== 'undefined' ? sessionStorage.getItem('badGithubToken') : null;
     
-    // 2. Shared Public Token (Saved when admin first logs in on this app instance)
+    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
+    if (adminToken && adminToken !== badToken) return adminToken.trim();
+    
     const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
-    if (publicToken) return publicToken.trim();
+    if (publicToken && publicToken !== badToken) return publicToken.trim();
 
-    // 3. Environment Variable (CI/CD / Local Dev)
     const envToken = import.meta.env.VITE_GITHUB_TOKEN;
-    if (envToken) return envToken.trim();
+    if (envToken && envToken !== badToken) return envToken.trim();
 
     return null;
   } catch (e) {
     return null;
+  }
+};
+
+/**
+ * Marks a token as invalid and clears it from storage
+ */
+const invalidateToken = (token) => {
+  if (!token) return;
+  const t = token.trim();
+  console.warn('[GITHUB] Token identified as invalid. Clearing from session.');
+  
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('badGithubToken', t);
+    
+    if (localStorage.getItem('githubToken') === t) {
+      localStorage.removeItem('githubToken');
+    }
+    if (localStorage.getItem('publicOrderToken') === t) {
+      localStorage.removeItem('publicOrderToken');
+    }
+    
+    window.dispatchEvent(new CustomEvent('github-token-cleared'));
   }
 };
 
@@ -82,14 +104,8 @@ export const fetchDb = async () => {
         console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
 
         // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
-        // Remove it so we don't keep failing and hitting rate limits.
         if (response.status === 401 && useToken) {
-          console.error('[GITHUB] Token is invalid. Clearing session.');
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('githubToken');
-            window.dispatchEvent(new CustomEvent('github-token-cleared'));
-          }
-          // Do NOT throw, just return null to try the next fallback
+          invalidateToken(token);
           return null;
         }
         return null;
@@ -210,7 +226,7 @@ export const updateDb = async (newData) => {
 
   if (!updateResponse.ok) {
     if (updateResponse.status === 401) {
-      localStorage.removeItem('githubToken');
+      invalidateToken(token);
     }
     const error = await updateResponse.json().catch(() => ({ message: 'Unknown error' }));
     throw new Error(`Failed to update database on GitHub: ${error.message}`);
