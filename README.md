@@ -34,10 +34,10 @@ Experience Jamui Super Mart as a native application on your Android device.
 
 ## 🛠️ Technical Architecture
 
-![Jamui Super Mart Architecture](JamUI-Arch.png) Old 
+![Jamui Super Mart Architecture](JamUI-Arch.png) Arch 
 
 
-```mermaid
+```mermaid Flow
 graph TD
     %% User/Customer Flow
     Customer((Customer)) -->|Browse| Storefront[React Storefront]
