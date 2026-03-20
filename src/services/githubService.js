@@ -42,18 +42,15 @@ export const fetchDb = async () => {
   
   const tryFetch = async (path, useToken = true) => {
     const headers = { 
-      'Accept': 'application/vnd.github.v3+json',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
+      'Accept': 'application/vnd.github.v3+json'
     };
     // Use 'token' prefix for classic PATs (ghp_...)
     if (useToken && token) headers['Authorization'] = `token ${token}`;
     
     try {
-      // Add a cache-busting timestamp to the URL
+      // Add a cache-busting timestamp to the URL (Safe for GitHub CORS)
       const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`, { 
-        headers,
-        cache: 'no-store'
+        headers
       });
       
       if (response.status === 401) {

@@ -157,12 +157,8 @@ export default function App() {
       const data = await apiFetch('/orders', {
         method: 'GET',
         headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        cache: 'no-store'
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
       })
       if (data && Array.isArray(data)) {
         setOrders(data)
