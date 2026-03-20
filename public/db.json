@@ -187,31 +187,31 @@
   ],
   "orders": [
     {
-      "id": 1774018405492,
+      "id": 1774018453270,
       "items": [
         {
-          "id": 1,
-          "name": "Kasturi Rice 26 kg",
-          "price": 830,
-          "quantity": 1,
-          "emoji": "Kasturi Usna 26kg",
-          "category": "Rice"
-        },
-        {
-          "id": 4,
-          "name": "Fortune Mini Kit 26 kg",
-          "price": 1430,
+          "id": 2,
+          "name": "Kasturi Rice 1 kg",
+          "price": 35,
           "quantity": 1,
           "emoji": "🌾",
           "category": "Rice"
         },
         {
-          "id": 5,
-          "name": "Fortune Mini Kit 1 kg",
-          "price": 58,
+          "id": 7,
+          "name": "Mustard Oil 1 Liter",
+          "price": 170,
           "quantity": 1,
-          "emoji": "🌾",
-          "category": "Rice"
+          "emoji": "🫙",
+          "category": "Oil"
+        },
+        {
+          "id": 8,
+          "name": "Toor Dal 1 kg",
+          "price": 125,
+          "quantity": 1,
+          "emoji": "🫘",
+          "category": "Dal"
         },
         {
           "id": 9,
@@ -222,12 +222,12 @@
           "category": "Dal"
         }
       ],
-      "total": 2528,
+      "total": 540,
       "customer": {
         "name": "karan",
         "phone": "5555511111"
       },
-      "timestamp": "2026-03-20T14:53:25.492Z",
+      "timestamp": "2026-03-20T14:54:13.270Z",
       "status": "pending"
     },
     {
