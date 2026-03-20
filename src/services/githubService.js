@@ -62,88 +62,118 @@ const getToken = () => {
   }
 };
 
+// Simple Promise-based cache for concurrent calls
+let activeFetchPromise = null;
+let lastFetchTime = 0;
+let cachedDb = null;
+const CACHE_TTL = 2000; // 2 seconds
+
 /**
  * Fetches the current database content from GitHub
  */
 export const fetchDb = async () => {
-  const token = getToken();
-  
-  // 1. STRATEGY: Try Raw GitHub Content FIRST (Fastest, no rate limits, public-safe)
-  try {
-    const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
-    const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
-    if (rawResponse.ok) {
-      const data = await rawResponse.json();
-      if (data && data.products) {
-        console.log('[GITHUB] Database loaded via Raw Content URL');
-        return data;
-      }
-    }
-  } catch (err) {
-    console.warn('[GITHUB] Raw fetch fallback:', err.message);
+  // 0. Cache Check: If a fetch is already in progress, use its promise
+  if (activeFetchPromise) return activeFetchPromise;
+
+  // 1. Cache Check: If we have a fresh cached version, use it
+  const now = Date.now();
+  if (cachedDb && now - lastFetchTime < CACHE_TTL) {
+    return cachedDb;
   }
 
-  // 2. Fallback: REST API
-  const tryFetch = async (path, useToken = true) => {
-    // If we don't have a token and useToken is true, skip this attempt to save time/rate-limit
-    if (useToken && !token) return null;
-
-    const headers = {
-      'Accept': 'application/vnd.github.v3+json'
-    };
-
-    if (useToken && token) {
-      headers['Authorization'] = `token ${token.trim()}`;
-    }
-
+  // Create a new fetch promise
+  activeFetchPromise = (async () => {
+    const token = getToken();
+    
+    // 1. STRATEGY: Try Raw GitHub Content FIRST (Fastest, no rate limits, public-safe)
     try {
-      // Use a unique query parameter for cache-busting
-      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
-      const response = await fetch(url, {
-        headers,
-        method: 'GET',
-        mode: 'cors'
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
-
-        // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
-        if (response.status === 401 && useToken) {
-          clearBadToken(token);
+      const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
+      const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
+      if (rawResponse.ok) {
+        const data = await rawResponse.json();
+        if (data && data.products) {
+          console.log('[GITHUB] Database loaded via Raw Content URL');
+          cachedDb = data;
+          lastFetchTime = Date.now();
+          return data;
         }
-        return null;
-      }
-
-      if (response.ok) {
-        const fileData = await response.json();
-        const binaryString = atob(fileData.content.replace(/\n/g, ''));
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const decoded = new TextDecoder('utf-8').decode(bytes);
-        return JSON.parse(decoded);
       }
     } catch (err) {
-      console.warn(`[GITHUB] Fetch failed for ${path}:`, err.message);
+      console.warn('[GITHUB] Raw fetch fallback:', err.message);
     }
-    return null;
-  };
 
-  // 3. Fallback: REST API with token
-  if (token) {
-    const data = await tryFetch(DB_PATH, true);
-    if (data) return data;
-  }
+    // 2. Fallback: REST API
+    const tryFetch = async (path, useToken = true) => {
+      // If we don't have a token and useToken is true, skip this attempt to save time/rate-limit
+      if (useToken && !token) return null;
 
-  // 4. Final Fallback: REST API without token
-  const finalData = await tryFetch(DB_PATH, false);
-  if (finalData) return finalData;
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
 
-  // 5. Emergency Default
-  return { products: [], orders: [], categories: [] };
+      if (useToken && token) {
+        headers['Authorization'] = `token ${token.trim()}`;
+      }
+
+      try {
+        // Use a unique query parameter for cache-busting
+        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
+        const response = await fetch(url, {
+          headers,
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
+
+          // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
+          if (response.status === 401 && useToken) {
+            clearBadToken(token);
+          }
+          return null;
+        }
+
+        if (response.ok) {
+          const fileData = await response.json();
+          const binaryString = atob(fileData.content.replace(/\n/g, ''));
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const decoded = new TextDecoder('utf-8').decode(bytes);
+          const parsed = JSON.parse(decoded);
+          cachedDb = parsed;
+          lastFetchTime = Date.now();
+          return parsed;
+        }
+      } catch (err) {
+        console.warn(`[GITHUB] Fetch failed for ${path}:`, err.message);
+      }
+      return null;
+    };
+
+    // 3. Fallback: REST API with token
+    if (token) {
+      const data = await tryFetch(DB_PATH, true);
+      if (data) return data;
+    }
+
+    // 4. Final Fallback: REST API without token
+    const finalData = await tryFetch(DB_PATH, false);
+    if (finalData) return finalData;
+
+    // 5. Emergency Default
+    const defaultData = { products: [], orders: [], categories: [] };
+    cachedDb = defaultData;
+    lastFetchTime = Date.now();
+    return defaultData;
+  })().finally(() => {
+    activeFetchPromise = null;
+  });
+
+  return activeFetchPromise;
 };
 
 /**
