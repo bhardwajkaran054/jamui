@@ -597,5 +597,8 @@
       "orderCount": 5,
       "loyaltyPoints": 150
     }
-  ]
+  ],
+  "settings": {
+    "publicOrderToken": "Ym5FVkozZlBnNWFJejh3cmxsd2ZrY05wSjZYdk9oakNxc1NhX3BoZw=="
+  }
 }
