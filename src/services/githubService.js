@@ -13,6 +13,28 @@ const DB_PATH = 'public/db.json';
 // For this Git-as-a-Backend setup, we use it for mobile/private window writes.
 const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeholder, will use admin's token if available
 
+// Helper to clear invalid tokens from storage
+const clearBadToken = (token) => {
+  if (!token || typeof window === 'undefined') return;
+  
+  const badToken = token.trim();
+  console.error('[GITHUB] Token is invalid. Clearing session.');
+  
+  // Blacklist it for the rest of this session
+  sessionStorage.setItem('badGithubToken', badToken);
+  
+  // Remove from persistent storage
+  if (localStorage.getItem('githubToken') === badToken) {
+    localStorage.removeItem('githubToken');
+  }
+  if (localStorage.getItem('publicOrderToken') === badToken) {
+    localStorage.removeItem('publicOrderToken');
+  }
+  
+  // Notify UI
+  window.dispatchEvent(new CustomEvent('github-token-cleared'));
+};
+
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
@@ -88,23 +110,8 @@ export const fetchDb = async () => {
         console.warn(`[GITHUB] ${response.status} for ${path}:`, errorData.message || 'Unauthorized/Rate Limit');
 
         // DECISIVE FIX: If it's a 401 (Unauthorized), the token is definitely bad.
-        // Remove it so we don't keep failing and hitting rate limits.
         if (response.status === 401 && useToken) {
-          console.error('[GITHUB] Token is invalid. Clearing session.');
-          if (typeof window !== 'undefined') {
-            const badToken = token.trim();
-            sessionStorage.setItem('badGithubToken', badToken);
-            localStorage.removeItem('githubToken');
-
-            const currentPublic = localStorage.getItem('publicOrderToken');
-            if (currentPublic === badToken) {
-              localStorage.removeItem('publicOrderToken');
-            }
-
-            window.dispatchEvent(new CustomEvent('github-token-cleared'));
-          }
-          // Do NOT throw, just return null to try the next fallback
-          return null;
+          clearBadToken(token);
         }
         return null;
       }
@@ -160,6 +167,11 @@ export const updateDb = async (newData) => {
       method: 'GET',
       mode: 'cors'
     });
+
+    if (response.status === 401 && useToken) {
+      clearBadToken(token);
+    }
+
     if (response.ok) {
       const data = await response.json();
       return data.sha;
@@ -223,7 +235,7 @@ export const updateDb = async (newData) => {
 
   if (!updateResponse.ok) {
     if (updateResponse.status === 401) {
-      localStorage.removeItem('githubToken');
+      clearBadToken(token);
     }
     const error = await updateResponse.json().catch(() => ({ message: 'Unknown error' }));
     throw new Error(`Failed to update database on GitHub: ${error.message}`);

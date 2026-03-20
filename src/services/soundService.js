@@ -16,8 +16,21 @@ class SoundService {
   play(key) {
     const audio = this.audioElements[key];
     if (audio) {
+      // Re-set src if it somehow became invalid (for "no supported sources" error)
+      if (!audio.src || audio.src === 'null') {
+        audio.src = sounds[key];
+      }
+
       audio.currentTime = 0;
-      audio.play().catch(e => console.warn('Sound blocked by browser policy:', e));
+      audio.play().catch(e => {
+        // If it failed because of sources, try to reload once
+        if (e.name === 'NotSupportedError') {
+          console.warn(`[SOUND] Source error for ${key}. Attempting reload...`);
+          audio.load();
+        } else {
+          console.warn('Sound blocked by browser policy:', e);
+        }
+      });
     }
   }
 }
