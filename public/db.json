@@ -264,26 +264,6 @@
       "status": "completed"
     },
     {
-      "id": 1773971706280,
-      "items": [
-        {
-          "id": 4,
-          "name": "Fortune Mini Kit 26 kg",
-          "price": 1430,
-          "quantity": 1,
-          "emoji": "🌾",
-          "category": "Rice"
-        }
-      ],
-      "total": 1420,
-      "customer": {
-        "name": "Monesh",
-        "phone": "9999999999"
-      },
-      "timestamp": "2026-03-20T01:55:06.280Z",
-      "status": "pending"
-    },
-    {
       "id": 1773969428643,
       "items": [
         {
