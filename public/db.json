@@ -187,6 +187,50 @@
   ],
   "orders": [
     {
+      "id": 1774007109186,
+      "items": [
+        {
+          "id": 1,
+          "name": "Kasturi Rice 26 kg",
+          "price": 830,
+          "quantity": 1,
+          "emoji": "Kasturi Usna 26kg",
+          "category": "Rice"
+        },
+        {
+          "id": 6,
+          "name": "Refined Oil 1 Liter",
+          "price": 135,
+          "quantity": 2,
+          "emoji": "🫙",
+          "category": "Oil"
+        },
+        {
+          "id": 7,
+          "name": "Mustard Oil 1 Liter",
+          "price": 170,
+          "quantity": 1,
+          "emoji": "🫙",
+          "category": "Oil"
+        },
+        {
+          "id": 9,
+          "name": "Dalmia Gold 250 gm",
+          "price": 110,
+          "quantity": 1,
+          "emoji": "🫘",
+          "category": "Dal"
+        }
+      ],
+      "total": 1430,
+      "customer": {
+        "name": "Sanket",
+        "phone": "88251588888"
+      },
+      "timestamp": "2026-03-20T11:45:09.186Z",
+      "status": "pending"
+    },
+    {
       "id": 1773969428643,
       "items": [
         {
