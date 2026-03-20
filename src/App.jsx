@@ -348,28 +348,27 @@ export default function App() {
   if (!loading && products.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-red-50 p-6 rounded-[2rem] border border-red-100 max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Connection Failed</h2>
-          <p className="text-gray-500 font-medium mb-6">
-            We couldn't load the product data. This might be due to an invalid token or repository path.
+        <div className="bg-blue-50 p-8 rounded-[2.5rem] border border-blue-100 max-w-md shadow-xl">
+          <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-200">
+            <Key className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">Setup Required</h2>
+          <p className="text-gray-500 font-medium mb-8 leading-relaxed">
+            To start using Jamui Super Mart, you need to provide your GitHub Personal Access Token (PAT). This allows the app to securely read and write your product data.
           </p>
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-red-600 text-white font-black px-6 py-3 rounded-2xl hover:bg-red-700 transition-all"
-            >
-              Retry Connection
-            </button>
+          <div className="flex flex-col gap-4">
             <button 
               onClick={() => {
-                localStorage.removeItem('githubToken');
-                window.location.reload();
+                setShowSecret(true)
+                // We'll trigger the login flow after the secret challenge
               }}
-              className="text-red-600 font-bold text-sm hover:underline"
+              className="bg-blue-600 text-white font-black px-8 py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
             >
-              Reset Token & Login Again
+              Configure GitHub Token
             </button>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+              Security: Your token is stored only in your browser.
+            </p>
           </div>
         </div>
       </div>

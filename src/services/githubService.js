@@ -33,10 +33,6 @@ const getToken = () => {
     const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
     if (publicToken && publicToken !== badToken) return publicToken.trim();
 
-    // 4. Environment Variable (VITE_GITHUB_TOKEN)
-    const envToken = import.meta.env.VITE_GITHUB_TOKEN;
-    if (envToken && envToken !== badToken) return envToken.trim();
-
     return null;
   } catch (e) {
     return null;
