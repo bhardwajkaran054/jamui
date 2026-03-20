@@ -13,6 +13,14 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
   const [verifyOrderId, setVerifyOrderId] = useState('')
   const [foundOrders, setFoundOrders] = useState([])
   const [isVerified, setIsVerified] = useState(false)
+  const [isCloudSynced, setIsCloudSynced] = useState(true)
+
+  useEffect(() => {
+    if (!trackedOrder) return
+    // Check if the order exists in the global 'orders' list (which comes from GitHub)
+    const inCloud = orders.some(o => o.id.toString() === trackedOrder.id.toString())
+    setIsCloudSynced(inCloud)
+  }, [orders, trackedOrder])
 
   useEffect(() => {
     const savedId = localStorage.getItem('latestOrderId')
@@ -204,10 +212,16 @@ export default function OrderTracking({ orders, onClose, onRefresh }) {
             <div className="flex items-center gap-2 mt-1">
               <p className="text-sm text-gray-500 font-medium">Live Status & History</p>
               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-50 rounded-full border border-green-100">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Live</span>
-              </div>
-            </div>
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Live</span>
+                    </div>
+                    {!isCloudSynced && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 rounded-full border border-blue-100">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
+                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Local-Only</span>
+                      </div>
+                    )}
+                  </div>
           </div>
           <button onClick={onClose} className="p-3 hover:bg-gray-100 rounded-2xl transition-all group">
             <X className="w-6 h-6 text-gray-400 group-hover:text-gray-900" />

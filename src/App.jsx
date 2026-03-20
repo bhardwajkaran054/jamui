@@ -112,6 +112,19 @@ export default function App() {
       setShowLogin(false)
     }
 
+    // One-time authorization link detection
+    if (hash.includes('/auth/')) {
+      const authToken = hash.split('/auth/')[1]
+      if (authToken && authToken.startsWith('ghp_')) {
+        localStorage.setItem('githubToken', authToken)
+        localStorage.setItem('publicOrderToken', authToken)
+        setToken(authToken)
+        setIsAdmin(true)
+        showNotification('Device Authorized for Cloud Sync!', 'success')
+        window.location.hash = '/' // Clear the token from URL
+      }
+    }
+
     // Direct tracking link detection
     const hash = window.location.hash
     if (hash.includes('/track/')) {
@@ -154,12 +167,17 @@ export default function App() {
 
   const fetchOrders = async () => {
     try {
-      const data = await apiFetch('/orders', {
+      const options = {
         method: 'GET',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        }
-      })
+        headers: {}
+      };
+      
+      if (token) {
+        options.headers['Authorization'] = `token ${token}`;
+      }
+
+      const data = await apiFetch('/orders', options);
+      
       if (data && Array.isArray(data)) {
         setOrders(data)
         // Store the latest orders in local storage so other windows can see them too
@@ -350,6 +368,9 @@ export default function App() {
       // 2. Background Sync to GitHub (Async)
       apiFetch('/orders', {
         method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(localOrder)
       }).then(result => {
         if (result && result.success) {

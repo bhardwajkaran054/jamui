@@ -44,13 +44,20 @@ export const fetchDb = async () => {
     const headers = { 
       'Accept': 'application/vnd.github.v3+json'
     };
+    
     // Use 'token' prefix for classic PATs (ghp_...)
-    if (useToken && token) headers['Authorization'] = `token ${token}`;
+    // IMPORTANT: GitHub API prefers 'Authorization: token <token>' for classic PATs
+    if (useToken && token) {
+      headers['Authorization'] = `token ${token}`;
+    }
     
     try {
-      // Add a cache-busting timestamp to the URL (Safe for GitHub CORS)
-      const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`, { 
-        headers
+      // Use a unique query parameter for cache-busting instead of Cache-Control header (to avoid CORS preflight issues)
+      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
+      const response = await fetch(url, { 
+        headers,
+        method: 'GET',
+        mode: 'cors'
       });
       
       if (response.status === 401) {
@@ -118,16 +125,19 @@ export const updateDb = async (newData) => {
   if (!token) throw new Error('GitHub Token required for this action');
 
   // 1. Get the current file's SHA (required for updates)
-  // Try with token first, then without (if rate limit allows)
   let sha = null;
   let finalPath = DB_PATH;
 
   const tryGetSha = async (path, useToken = true) => {
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (useToken) headers['Authorization'] = `token ${token}`;
+    if (useToken && token) headers['Authorization'] = `token ${token}`;
     
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?t=${Date.now()}`;
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { 
+      headers,
+      method: 'GET',
+      mode: 'cors'
+    });
     if (response.ok) {
       const data = await response.json();
       return data.sha;
