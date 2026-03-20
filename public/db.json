@@ -160,14 +160,14 @@
       "id": 18
     },
     {
-      "name": "test",
-      "price": 0,
-      "unit": "GM",
+      "name": "BASMATI RICE INDIA GATE",
+      "price": 120,
+      "unit": "KG",
       "category": "Rice",
       "emoji": "🫘",
       "image": "https://media.gettyimages.com/id/1912193566/photo/full-frame-macro-shot-of-brown-rice-background-food-texture.jpg?s=612x612&w=0&k=20&c=nvV_LCnxO58IaJzxfJ3QDd201L9TAUMokIwK3amaAtk=",
       "useImage": true,
-      "stock": 7,
+      "stock": 9,
       "id": 19
     },
     {
@@ -381,6 +381,15 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773976562130,
+      "productId": 19,
+      "productName": "BASMATI RICE INDIA GATE",
+      "oldStock": 7,
+      "newStock": 9,
+      "reason": "Manual Admin Update",
+      "timestamp": "2026-03-20T03:16:02.130Z"
+    },
     {
       "id": 1773976487082.012,
       "productId": 18,
