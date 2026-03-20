@@ -156,7 +156,7 @@
       "unit": "KG",
       "category": "Veg",
       "emoji": "🥔",
-      "stock": 89,
+      "stock": 88,
       "id": 18
     },
     {
@@ -342,7 +342,8 @@
       ],
       "total": 10,
       "timestamp": "2026-03-19T15:18:15.583Z",
-      "status": "pending"
+      "status": "completed",
+      "estimatedDelivery": "30-45 mins"
     },
     {
       "id": 1773922621250,
@@ -380,6 +381,15 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773976487082.012,
+      "productId": 18,
+      "productName": "Allu",
+      "oldStock": 89,
+      "newStock": 88,
+      "reason": "Order Approved (#JM-495583)",
+      "timestamp": "2026-03-20T03:14:47.082Z"
+    },
     {
       "id": 1773976460640.6084,
       "productId": 19,
