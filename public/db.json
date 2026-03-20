@@ -191,43 +191,6 @@
   ],
   "orders": [
     {
-      "id": 1773973604576,
-      "items": [
-        {
-          "id": 1,
-          "name": "Kasturi Rice 26 kg",
-          "price": 830,
-          "quantity": 1,
-          "emoji": "Kasturi Usna 26kg",
-          "category": "Rice"
-        },
-        {
-          "id": 2,
-          "name": "Kasturi Rice 1 kg",
-          "price": 35,
-          "quantity": 1,
-          "emoji": "🌾",
-          "category": "Rice"
-        },
-        {
-          "id": 4,
-          "name": "Fortune Mini Kit 26 kg",
-          "price": 1430,
-          "quantity": 1,
-          "emoji": "🌾",
-          "category": "Rice"
-        }
-      ],
-      "total": 2395,
-      "customer": {
-        "name": "Monesh Ram",
-        "phone": "9999999999"
-      },
-      "timestamp": "2026-03-20T02:26:45.227Z",
-      "status": "completed",
-      "estimatedDelivery": "30-45 mins"
-    },
-    {
       "id": 1773973356611,
       "items": [
         {
