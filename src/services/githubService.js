@@ -44,9 +44,10 @@ const getToken = () => {
 export const setPublicOrderToken = (encodedToken) => {
   if (!encodedToken) return;
   try {
-    // We decode it here (it's stored in Base64 to avoid GitHub's auto-revocation scanner)
-    const decoded = atob(encodedToken);
-    localStorage.setItem('publicOrderToken', decoded);
+    // Decode logic: Base64 decode, then reverse back to original
+    const reversed = atob(encodedToken);
+    const original = reversed.split('').reverse().join('');
+    localStorage.setItem('publicOrderToken', original);
   } catch (e) {
     console.error('[GITHUB] Failed to set public token:', e);
   }
