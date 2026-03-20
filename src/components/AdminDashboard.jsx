@@ -820,21 +820,9 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
                     <span className="text-sm font-bold text-gray-400">Public Writes</span>
                     <div className="flex items-center gap-3">
-                      <span className={`text-xs font-black uppercase ${token ? 'text-blue-400' : 'text-red-400'}`}>
-                        {token ? 'Enabled' : 'Token Missing'}
+                      <span className="text-xs font-black uppercase text-green-400">
+                        Enabled
                       </span>
-                      {token && (
-                        <button 
-                          onClick={() => {
-                            const authUrl = `${window.location.origin}/#/auth/${token}`;
-                            navigator.clipboard.writeText(authUrl);
-                            alert('Authorization link copied! Open this link on your mobile or private window to enable cloud sync.');
-                          }}
-                          className="px-3 py-1 bg-blue-600/20 text-blue-400 text-[10px] font-black uppercase rounded-lg border border-blue-600/30 hover:bg-blue-600/40 transition-all"
-                        >
-                          Sync Link
-                        </button>
-                      )}
                     </div>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">

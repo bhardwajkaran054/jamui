@@ -3,22 +3,35 @@ import { fetchDb, updateDb } from './services/githubService';
 /**
  * Switch between 'github-backend' and 'local-node-backend'
  */
-export const BACKEND_MODE = 'github-backend'; // Use 'local-node-backend' for local testing
-export const API_URL = BACKEND_MODE === 'github-backend' ? 'github-backend' : '/api';
+export const BACKEND_MODE = 'local-node-backend'; 
+export const API_URL = '/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
   // 1. Local Node.js Backend Implementation
   if (BACKEND_MODE === 'local-node-backend') {
-    const url = `${API_URL}${endpoint}`;
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+    
+    // Auto-add Authorization header if token exists
+    const token = localStorage.getItem('githubToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+    
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
+      headers
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('githubToken');
+        window.dispatchEvent(new CustomEvent('github-token-cleared'));
+      }
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }

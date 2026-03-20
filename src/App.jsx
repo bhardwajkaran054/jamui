@@ -50,117 +50,14 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState(null)
   const [isAdding, setIsAdding] = useState(false)
 
-  useEffect(() => {
-    // Initial fetch from Local Storage for instant UI
-    try {
-      const cached = localStorage.getItem('cachedOrders')
-      if (cached) setOrders(JSON.parse(cached))
-    } catch (e) {}
-
-    const initData = async () => {
-      await Promise.all([
-        fetchProducts(),
-        fetchCategories(),
-        fetchOrders(),
-        fetchPromoCodes(),
-        fetchNotice(),
-        fetchDeliveryZones()
-      ])
-    }
-    initData()
-    
-    if (token) setIsAdmin(true)
-
-    // Polling for new orders (Only for admin with token to avoid rate limits)
-    let pollInterval = null;
-    if (token) {
-      pollInterval = setInterval(async () => {
-        try {
-          const latestOrders = await fetchOrders()
-          
-          // Admin Notification Logic
-          if (latestOrders && latestOrders.length > 0) {
-            const storedOrders = JSON.parse(localStorage.getItem('adminKnownOrders') || '[]')
-            const newOrders = latestOrders.filter(o => !storedOrders.map(String).includes(o.id.toString()))
-            
-            if (newOrders.length > 0) {
-              soundService.play('order')
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Jamui Super Mart Admin', {
-                  body: `You have ${newOrders.length} new order(s) waiting for approval!`,
-                  icon: '/favicon.svg'
-                })
-              }
-              showNotification(`Received ${newOrders.length} new order(s)!`, 'success')
-              const updatedKnown = [...new Set([...storedOrders.map(String), ...latestOrders.map(o => o.id.toString())])]
-              localStorage.setItem('adminKnownOrders', JSON.stringify(updatedKnown))
-            }
-          }
-        } catch (err) {
-          console.warn('[POLLING] Failed to fetch updates. Skipping this interval.');
-          // If the error is 401, the token was already cleared by githubService
-          if (err.message.includes('401') || err.message.includes('Unauthorized')) {
-            clearInterval(pollInterval);
-            setIsAdmin(false);
-            setToken(null);
-          }
-        }
-      }, 15000) // Increased to 15s to be more gentle
-    }
-
-    // Secret /admin path detection
-    const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
-    if (isPathAdmin) {
-      if (!passedSecret) {
-        setShowSecret(true)
-      } else if (!token) {
-        setShowLogin(true)
-      }
-    } else {
-      // Hide admin overlays if we are not on the admin path
-      setShowSecret(false)
-      setShowLogin(false)
-    }
-
-    // One-time authorization link detection
-    if (hash.includes('/auth/')) {
-      const authToken = hash.split('/auth/')[1]
-      if (authToken && authToken.startsWith('ghp_')) {
-        localStorage.setItem('githubToken', authToken)
-        localStorage.setItem('publicOrderToken', authToken)
-        setToken(authToken)
-        setIsAdmin(true)
-        showNotification('Device Authorized for Cloud Sync!', 'success')
-        window.location.hash = '/' // Clear the token from URL
-      }
-    }
-
-    // Direct tracking link detection
-    const hash = window.location.hash
-    if (hash.includes('/track/')) {
-      const trackId = hash.split('/track/')[1]
-      if (trackId) {
-        localStorage.setItem('latestOrderId', trackId)
-        setTrackingOpen(true)
-      }
-    }
-
-    return () => clearInterval(pollInterval)
-  }, [token, passedSecret])
-
-  const showNotification = (message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
-  }
-
   const fetchProducts = async () => {
     try {
       setLoading(true)
       const data = await apiFetch('/products')
-      setProducts(data)
+      if (data) setProducts(data)
     } catch (err) {
       console.error('[API ERROR] Products fetch failed:', err.message)
-      showNotification(`API Error: ${err.message}`, 'error')
+      // showNotification(`API Error: ${err.message}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -169,7 +66,7 @@ export default function App() {
   const fetchCategories = async () => {
     try {
       const data = await apiFetch('/categories')
-      setCategories(data)
+      if (data) setCategories(data)
     } catch (err) {
       console.error('[API ERROR] Categories fetch failed:', err.message)
     }
@@ -177,16 +74,7 @@ export default function App() {
 
   const fetchOrders = async () => {
     try {
-      const options = {
-        method: 'GET',
-        headers: {}
-      };
-      
-      if (token) {
-        options.headers['Authorization'] = `token ${token}`;
-      }
-
-      const data = await apiFetch('/orders', options);
+      const data = await apiFetch('/orders');
       
       if (data && Array.isArray(data)) {
         setOrders(data)
@@ -210,7 +98,7 @@ export default function App() {
   const fetchPromoCodes = async () => {
     try {
       const data = await apiFetch('/promo-codes')
-      setPromoCodes(data)
+      if (data) setPromoCodes(data)
     } catch (err) {
       console.error('[API ERROR] Promo codes fetch failed:', err.message)
     }
@@ -219,7 +107,7 @@ export default function App() {
   const fetchNotice = async () => {
     try {
       const data = await apiFetch('/notices')
-      setNotice(data)
+      if (data) setNotice(data)
     } catch (err) {
       console.error('[API ERROR] Notices fetch failed:', err.message)
     }
@@ -228,10 +116,121 @@ export default function App() {
   const fetchDeliveryZones = async () => {
     try {
       const data = await apiFetch('/delivery-zones')
-      setDeliveryZones(data)
+      if (data) setDeliveryZones(data)
     } catch (err) {
       console.error('[API ERROR] Delivery zones fetch failed:', err.message)
     }
+  }
+
+  useEffect(() => {
+    // Initial fetch from Local Storage for instant UI
+    try {
+      const cached = localStorage.getItem('cachedOrders')
+      if (cached) setOrders(JSON.parse(cached))
+    } catch (e) {}
+
+    const initData = async () => {
+      try {
+        await Promise.all([
+          fetchProducts(),
+          fetchCategories(),
+          fetchOrders(),
+          fetchPromoCodes(),
+          fetchNotice(),
+          fetchDeliveryZones()
+        ])
+      } catch (err) {
+        console.error('[INIT ERROR] Data initialization failed:', err.message)
+      }
+    }
+    initData()
+    
+    if (token) setIsAdmin(true)
+
+    // Handle token-cleared event from githubService
+    const handleTokenCleared = () => {
+      setToken(null)
+      setIsAdmin(false)
+      showNotification('Session Expired. Please log in again.', 'error')
+    }
+    window.addEventListener('github-token-cleared', handleTokenCleared)
+
+    // Polling for new orders (Only for admin with token to avoid rate limits)
+    let pollInterval = null;
+    if (token) {
+      pollInterval = setInterval(async () => {
+        try {
+          const latestOrders = await fetchOrders()
+          
+          if (latestOrders && latestOrders.length > 0) {
+            const storedOrders = JSON.parse(localStorage.getItem('adminKnownOrders') || '[]')
+            const newOrders = latestOrders.filter(o => !storedOrders.map(String).includes(o.id.toString()))
+            
+            if (newOrders.length > 0) {
+              soundService.play('order')
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Jamui Super Mart Admin', {
+                  body: `You have ${newOrders.length} new order(s) waiting for approval!`,
+                  icon: '/favicon.svg'
+                })
+              }
+              showNotification(`Received ${newOrders.length} new order(s)!`, 'success')
+              const updatedKnown = [...new Set([...storedOrders.map(String), ...latestOrders.map(o => o.id.toString())])]
+              localStorage.setItem('adminKnownOrders', JSON.stringify(updatedKnown))
+            }
+          }
+        } catch (err) {
+          console.warn('[POLLING] Fetch failed. Skipping interval.');
+        }
+      }, 15000)
+    }
+
+    // Secret /admin path detection
+    const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
+    if (isPathAdmin) {
+      if (!passedSecret) {
+        setShowSecret(true)
+      } else if (!token) {
+        setShowLogin(true)
+      }
+    } else {
+      // Hide admin overlays if we are not on the admin path
+      setShowSecret(false)
+      setShowLogin(false)
+    }
+
+    // Direct tracking link detection
+    const hash = window.location.hash
+    if (hash.includes('/track/')) {
+      const trackId = hash.split('/track/')[1]
+      if (trackId) {
+        localStorage.setItem('latestOrderId', trackId)
+        setTrackingOpen(true)
+      }
+    }
+
+    // One-time authorization link detection
+    if (hash.includes('/auth/')) {
+      const authToken = hash.split('/auth/')[1]
+      if (authToken && authToken.startsWith('ghp_')) {
+        localStorage.setItem('githubToken', authToken)
+        localStorage.setItem('publicOrderToken', authToken)
+        setToken(authToken)
+        setIsAdmin(true)
+        showNotification('Device Authorized for Cloud Sync!', 'success')
+        window.location.hash = '/' // Clear the token from URL
+      }
+    }
+
+    return () => {
+      clearInterval(pollInterval)
+      window.removeEventListener('github-token-cleared', handleTokenCleared)
+    }
+  }, [token, passedSecret])
+
+  const showNotification = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
   }
 
   const handleAdminAction = async (action, data) => {
@@ -240,7 +239,7 @@ export default function App() {
       try {
         await apiFetch(`/products/${data.id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `token ${token.trim()}` }
         })
         showNotification('Product deleted successfully')
         await fetchProducts()
@@ -253,7 +252,7 @@ export default function App() {
       try {
         await apiFetch(`/categories/${encodeURIComponent(data)}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `token ${token.trim()}` }
         })
         showNotification('Category deleted successfully')
         await fetchProducts()
@@ -265,7 +264,7 @@ export default function App() {
       try {
         await apiFetch('/categories', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 'Authorization': `token ${token.trim()}` },
           body: JSON.stringify({ name: data })
         })
         showNotification('Category added successfully')
@@ -277,7 +276,7 @@ export default function App() {
       try {
         await apiFetch(`/orders/${data.id}`, {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 'Authorization': `token ${token.trim()}` },
           body: JSON.stringify({ 
             status: data.status,
             estimatedDelivery: data.estimatedDelivery,
@@ -294,7 +293,7 @@ export default function App() {
       try {
         await apiFetch(`/orders/${data.id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `token ${token.trim()}` }
         })
         showNotification('Order deleted')
         await fetchOrders()
@@ -309,7 +308,7 @@ export default function App() {
       try {
         await apiFetch('/products', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 'Authorization': `token ${token.trim()}` },
           body: JSON.stringify(data)
         })
         showNotification('Product saved successfully')
@@ -326,16 +325,15 @@ export default function App() {
   const handleLogin = (newToken) => {
     setToken(newToken)
     localStorage.setItem('githubToken', newToken)
-    // CRITICAL FIX: Share the token for public order saving so mobile/other users can write
-    // This allows the admin to "authorize" the app instance once.
-    localStorage.setItem('publicOrderToken', newToken)
-    
-    // Initialize known orders on login so we don't notify for old orders
-    const knownIds = orders.map(o => o.id)
-    localStorage.setItem('adminKnownOrders', JSON.stringify(knownIds))
     setIsAdmin(true)
     setShowLogin(false)
     showNotification('Welcome back, Admin!')
+    
+    // Refresh all data now that we are admin
+    const initData = async () => {
+      await Promise.all([fetchProducts(), fetchCategories(), fetchOrders(), fetchPromoCodes(), fetchNotice(), fetchDeliveryZones()])
+    }
+    initData()
   }
 
   const handleLogout = () => {
@@ -349,14 +347,7 @@ export default function App() {
 
   const handleOrder = async (cartItems, total, customerInfo) => {
     try {
-      const orderId = Date.now()
-      // Save latest order ID for automatic tracking
-      localStorage.setItem('latestOrderId', orderId)
-
-      // 1. Instant Local State Update (Frontend immediate feedback)
-      const localOrder = {
-        id: orderId,
-        customer: customerInfo,
+      const orderData = {
         items: cartItems.map(item => ({
           id: item.id,
           name: item.name,
@@ -364,38 +355,36 @@ export default function App() {
           quantity: cart[item.id],
           emoji: item.emoji,
           category: item.category
-        })), 
+        })),
         total,
-        timestamp: new Date().toISOString(),
-        status: 'pending'
+        customer: customerInfo,
+        timestamp: new Date().toISOString()
+      };
+
+      // 1. Post to Server (Directly)
+      const result = await apiFetch('/orders', {
+        method: 'POST',
+        body: JSON.stringify(orderData)
+      });
+
+      if (!result || !result.id) {
+        throw new Error('Server failed to confirm order');
       }
 
-      // Update state and persistent cache immediately
-      const updatedOrders = [localOrder, ...orders]
-      setOrders(updatedOrders)
-      localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders))
+      // 2. Local feedback and cleanup
+      const orderId = result.id;
+      localStorage.setItem('latestOrderId', orderId);
+      
+      const localOrder = { ...orderData, id: orderId, status: 'pending' };
+      const updatedOrders = [localOrder, ...orders];
+      setOrders(updatedOrders);
+      localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
 
-      // 2. Background Sync to GitHub (Async)
-      apiFetch('/orders', {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(localOrder)
-      }).then(result => {
-        if (result && result.success) {
-          console.log('[SYNC] Order synced to cloud');
-        }
-      }).catch(err => {
-        console.warn('[SYNC ERROR] Could not save to GitHub. Order remains local.', err.message);
-      })
-
-      // 3. Complete Checkout Flow
-      setCart({})
-      soundService.play('order')
+      setCart({});
+      soundService.play('order');
       
       if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200])
+        navigator.vibrate([200, 100, 200]);
       }
 
       confetti({
@@ -403,19 +392,19 @@ export default function App() {
         spread: 70,
         origin: { y: 0.6 },
         colors: ['#166534', '#15803d', '#22c55e']
-      })
-      showNotification('Order ready! Redirecting to WhatsApp...')
-      
-      // Auto-open tracking after a short delay
-      setTimeout(() => {
-        setTrackingOpen(true)
-      }, 2000)
+      });
 
-      return { success: true, order: localOrder }
+      showNotification('Order placed successfully!');
+      
+      setTimeout(() => {
+        setTrackingOpen(true);
+      }, 2000);
+
+      return { success: true, order: localOrder };
     } catch (err) {
-      console.error('[CRITICAL ORDER ERROR]:', err.message)
-      showNotification('Checkout failed. Please try again.', 'error')
-      return { success: false }
+      console.error('[CRITICAL ORDER ERROR]:', err.message);
+      showNotification('Checkout failed. Please try again.', 'error');
+      return { success: false };
     }
   }
 

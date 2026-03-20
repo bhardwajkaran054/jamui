@@ -59,9 +59,45 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     items TEXT NOT NULL,
     total REAL NOT NULL,
+    customer TEXT,
+    promoCode TEXT,
+    deliveryFee REAL,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'pending'
+    status TEXT DEFAULT 'pending',
+    estimatedDelivery TEXT,
+    rejectReason TEXT
   )`, (err) => { if (err) console.error('[DB] Error creating orders table:', err.message); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS promo_codes (
+    code TEXT PRIMARY KEY,
+    discount REAL NOT NULL,
+    type TEXT NOT NULL,
+    minOrder REAL,
+    active INTEGER DEFAULT 1
+  )`, (err) => { if (err) console.error('[DB] Error creating promo_codes table:', err.message); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS notices (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    text TEXT NOT NULL,
+    active INTEGER DEFAULT 1
+  )`, (err) => { if (err) console.error('[DB] Error creating notices table:', err.message); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS delivery_zones (
+    name TEXT PRIMARY KEY,
+    fee REAL NOT NULL,
+    minOrder REAL,
+    active INTEGER DEFAULT 1
+  )`, (err) => { if (err) console.error('[DB] Error creating delivery_zones table:', err.message); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS stock_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    productId INTEGER NOT NULL,
+    productName TEXT NOT NULL,
+    oldStock INTEGER NOT NULL,
+    newStock INTEGER NOT NULL,
+    reason TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`, (err) => { if (err) console.error('[DB] Error creating stock_logs table:', err.message); });
 
   // Seeding
   db.get("SELECT COUNT(*) as count FROM products", (err, row) => {

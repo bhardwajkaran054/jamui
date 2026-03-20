@@ -112,22 +112,186 @@ app.delete('/api/products/:id', authMiddleware, (req, res) => {
 });
 
 app.post('/api/orders', (req, res) => {
-  const { items, total } = req.body;
+  const { items, total, customer, promoCode, deliveryFee } = req.body;
   db.serialize(() => {
-    db.run(`INSERT INTO orders (items, total) VALUES (?, ?)`, [JSON.stringify(items), total], function(err) {
-      if (err) return res.status(500).json({ error: 'Order failed' });
-      const stmt = db.prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
-      items.forEach(item => stmt.run(item.quantity, item.id));
-      stmt.finalize();
-      res.json({ message: 'Success', id: this.lastID });
-    });
+    db.run(
+      `INSERT INTO orders (items, total, customer, promoCode, deliveryFee) VALUES (?, ?, ?, ?, ?)`, 
+      [JSON.stringify(items), total, JSON.stringify(customer), promoCode, deliveryFee], 
+      function(err) {
+        if (err) {
+          console.error('[DB ERROR]', err.message);
+          return res.status(500).json({ error: 'Order failed' });
+        }
+        res.json({ message: 'Success', id: this.lastID });
+      }
+    );
   });
 });
 
 app.get('/api/orders', authMiddleware, (req, res) => {
   db.all('SELECT * FROM orders ORDER BY timestamp DESC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Fetch failed' });
-    res.json(rows.map(row => ({ ...row, items: JSON.parse(row.items) })));
+    res.json(rows.map(row => ({ 
+      ...row, 
+      items: JSON.parse(row.items),
+      customer: JSON.parse(row.customer || '{}')
+    })));
+  });
+});
+
+app.put('/api/orders/:id', authMiddleware, (req, res) => {
+  const { status, estimatedDelivery, rejectReason } = req.body;
+  const id = req.params.id;
+  
+  // 1. Get the current order and its items
+  db.get('SELECT items, status FROM orders WHERE id = ?', [id], (err, order) => {
+    if (err || !order) return res.status(404).json({ error: 'Order not found' });
+    
+    const items = JSON.parse(order.items);
+    
+    // 2. If transitioning to 'completed' (approved)
+    if (status === 'completed' && order.status !== 'completed') {
+      db.serialize(() => {
+        const stmt = db.prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
+        const logStmt = db.prepare("INSERT INTO stock_logs (productId, productName, oldStock, newStock, reason) VALUES (?, ?, ?, ?, ?)");
+        
+        items.forEach(item => {
+          db.get('SELECT name, stock FROM products WHERE id = ?', [item.id], (err, product) => {
+            if (product) {
+              const oldStock = product.stock;
+              const newStock = Math.max(0, oldStock - item.quantity);
+              stmt.run(item.quantity, item.id);
+              logStmt.run(item.id, product.name, oldStock, newStock, `Order Approved (#JM-${id.toString().slice(-6)})`);
+            }
+          });
+        });
+        
+        stmt.finalize();
+        logStmt.finalize();
+      });
+    }
+
+    // 3. Update the order record
+    const sql = `UPDATE orders SET status = ?, estimatedDelivery = ?, rejectReason = ? WHERE id = ?`;
+    db.run(sql, [status, estimatedDelivery, rejectReason, id], function(err) {
+      if (err) return res.status(500).json({ error: 'Update failed' });
+      res.json({ success: true });
+    });
+  });
+});
+
+app.delete('/api/orders/:id', authMiddleware, (req, res) => {
+  db.run('DELETE FROM orders WHERE id = ?', req.params.id, function(err) {
+    if (err) return res.status(500).json({ error: 'Delete failed' });
+    res.json({ success: true });
+  });
+});
+
+// Promo Codes
+app.get('/api/promo-codes', (req, res) => {
+  db.all('SELECT * FROM promo_codes', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Fetch failed' });
+    res.json(rows);
+  });
+});
+
+app.post('/api/promo-codes', authMiddleware, (req, res) => {
+  const { code, discount, type, minOrder } = req.body;
+  const sql = `INSERT OR REPLACE INTO promo_codes (code, discount, type, minOrder) VALUES (?, ?, ?, ?)`;
+  db.run(sql, [code, discount, type, minOrder], function(err) {
+    if (err) return res.status(500).json({ error: 'Save failed' });
+    res.json({ success: true });
+  });
+});
+
+app.delete('/api/promo-codes/:code', authMiddleware, (req, res) => {
+  db.run('DELETE FROM promo_codes WHERE code = ?', req.params.code, function(err) {
+    if (err) return res.status(500).json({ error: 'Delete failed' });
+    res.json({ success: true });
+  });
+});
+
+// Notices
+app.get('/api/notices', (req, res) => {
+  db.get('SELECT * FROM notices WHERE id = 1', [], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Fetch failed' });
+    res.json(row || { text: '', active: 0 });
+  });
+});
+
+app.post('/api/notices', authMiddleware, (req, res) => {
+  const { text, active } = req.body;
+  const sql = `INSERT OR REPLACE INTO notices (id, text, active) VALUES (1, ?, ?)`;
+  db.run(sql, [text, active ? 1 : 0], function(err) {
+    if (err) return res.status(500).json({ error: 'Save failed' });
+    res.json({ success: true });
+  });
+});
+
+// Delivery Zones
+app.get('/api/delivery-zones', (req, res) => {
+  db.all('SELECT * FROM delivery_zones', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Fetch failed' });
+    res.json(rows);
+  });
+});
+
+app.post('/api/delivery-zones', authMiddleware, (req, res) => {
+  const { name, fee, minOrder } = req.body;
+  const sql = `INSERT OR REPLACE INTO delivery_zones (name, fee, minOrder) VALUES (?, ?, ?)`;
+  db.run(sql, [name, fee, minOrder], function(err) {
+    if (err) return res.status(500).json({ error: 'Save failed' });
+    res.json({ success: true });
+  });
+});
+
+app.delete('/api/delivery-zones/:name', authMiddleware, (req, res) => {
+  db.run('DELETE FROM delivery_zones WHERE name = ?', decodeURIComponent(req.params.name), function(err) {
+    if (err) return res.status(500).json({ error: 'Delete failed' });
+    res.json({ success: true });
+  });
+});
+
+// Customers
+app.get('/api/customers', authMiddleware, (req, res) => {
+  // Generate customer list from orders
+  db.all('SELECT customer, total, timestamp, status FROM orders', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Fetch failed' });
+    
+    const customersMap = {};
+    rows.forEach(row => {
+      const customer = JSON.parse(row.customer || '{}');
+      if (customer.phone) {
+        const phone = customer.phone;
+        if (!customersMap[phone]) {
+          customersMap[phone] = {
+            name: customer.name,
+            phone: phone,
+            totalSpent: 0,
+            orderCount: 0,
+            lastOrder: null,
+            loyaltyPoints: 0
+          };
+        }
+        if (row.status === 'completed') {
+          customersMap[phone].totalSpent += row.total;
+          customersMap[phone].loyaltyPoints += Math.floor(row.total / 100);
+        }
+        customersMap[phone].orderCount += 1;
+        if (!customersMap[phone].lastOrder || new Date(row.timestamp) > new Date(customersMap[phone].lastOrder)) {
+          customersMap[phone].lastOrder = row.timestamp;
+        }
+      }
+    });
+    res.json(Object.values(customersMap));
+  });
+});
+
+// Stock Logs
+app.get('/api/stock-logs', authMiddleware, (req, res) => {
+  db.all('SELECT * FROM stock_logs ORDER BY timestamp DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Fetch failed' });
+    res.json(rows);
   });
 });
 

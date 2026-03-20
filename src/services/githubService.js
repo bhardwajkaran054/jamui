@@ -16,17 +16,23 @@ const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeh
 // Helper to get token from storage or environment
 const getToken = () => {
   try {
+    // Check if we've already marked this token as invalid in this session
+    const badToken = typeof window !== 'undefined' ? sessionStorage.getItem('badGithubToken') : null;
+
+    // Helper to check if token is blacklisted
+    const isBad = (t) => t && badToken && t.trim() === badToken;
+
     // 1. Admin Session Token (Most reliable)
     const adminToken = typeof window !== 'undefined' ? localStorage.getItem('githubToken') : null;
-    if (adminToken) return adminToken;
+    if (adminToken && !isBad(adminToken)) return adminToken.trim();
     
     // 2. Shared Public Token (Saved when admin first logs in on this app instance)
     const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
-    if (publicToken) return publicToken;
+    if (publicToken && !isBad(publicToken)) return publicToken.trim();
 
     // 3. Environment Variable (CI/CD / Local Dev)
     const envToken = import.meta.env.VITE_GITHUB_TOKEN;
-    if (envToken) return envToken;
+    if (envToken && !isBad(envToken)) return envToken.trim();
 
     return null;
   } catch (e) {
@@ -49,7 +55,7 @@ export const fetchDb = async () => {
     };
     
     if (useToken && token) {
-      headers['Authorization'] = `token ${token}`;
+      headers['Authorization'] = `token ${token.trim()}`;
     }
     
     try {
@@ -70,9 +76,22 @@ export const fetchDb = async () => {
         if (response.status === 401 && useToken) {
           console.error('[GITHUB] Token is invalid. Clearing session.');
           if (typeof window !== 'undefined') {
+            const badToken = token.trim();
+            sessionStorage.setItem('badGithubToken', badToken);
             localStorage.removeItem('githubToken');
-            localStorage.removeItem('publicOrderToken');
+            
+            // Do NOT remove publicOrderToken here, as it might be used by other sessions
+            // but for this specific session, we should probably clear it if it was the one being used.
+            const currentPublic = localStorage.getItem('publicOrderToken');
+            if (currentPublic === badToken) {
+              localStorage.removeItem('publicOrderToken');
+            }
+            
+            // DISPATCH EVENT: Notify the UI that the token is gone
+            window.dispatchEvent(new CustomEvent('github-token-cleared'));
           }
+          // Throw error to stop the loop/polling in App.jsx
+          throw new Error('401 Unauthorized');
         }
         return null;
       }
@@ -96,8 +115,13 @@ export const fetchDb = async () => {
   // NEW STRATEGY:
   // 1. If admin (has token), try REST API with token first (Highest fresh priority)
   if (token) {
-    const data = await tryFetch(DB_PATH, true);
-    if (data) return data;
+    try {
+      const data = await tryFetch(DB_PATH, true);
+      if (data) return data;
+    } catch (err) {
+      console.warn('[GITHUB] Token failed, falling back to raw content...', err.message);
+      // The token was already cleared by tryFetch if it was a 401
+    }
   }
 
   // 2. If not admin OR REST API failed, try Raw GitHub Content (Safe from rate limits, read-only)
@@ -105,14 +129,20 @@ export const fetchDb = async () => {
     const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${DB_PATH}?t=${Date.now()}`;
     const rawResponse = await fetch(rawUrl, { cache: 'no-store' });
     if (rawResponse.ok) {
-      return await rawResponse.json();
+      const data = await rawResponse.json();
+      if (data) return data;
     }
   } catch (err) {
     console.warn('[GITHUB] Raw fetch failed:', err.message);
   }
 
   // 3. Last fallback: Try REST API without token (Only if everything else failed)
-  return await tryFetch(DB_PATH, false);
+  try {
+    return await tryFetch(DB_PATH, false);
+  } catch (err) {
+    console.error('[GITHUB] All fetch methods failed:', err.message);
+    return { products: [], orders: [], categories: [] }; // Return minimal valid structure
+  }
 };
 
 /**
@@ -185,7 +215,7 @@ export const updateDb = async (newData) => {
   const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${finalPath}`, {
     method: 'PUT',
     headers: { 
-      'Authorization': `token ${token}`,
+      'Authorization': `token ${token.trim()}`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
@@ -216,7 +246,7 @@ export const validateToken = async (token) => {
     // 1. First, check if the token is valid by getting the authenticated user
     const userResponse = await fetch('https://api.github.com/user', {
       headers: { 
-        'Authorization': `token ${token}`,
+        'Authorization': `token ${token.trim()}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
@@ -235,7 +265,7 @@ export const validateToken = async (token) => {
     for (const owner of repoOwners) {
       const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${REPO_NAME}`, {
         headers: { 
-          'Authorization': `token ${token}`,
+          'Authorization': `token ${token.trim()}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });
