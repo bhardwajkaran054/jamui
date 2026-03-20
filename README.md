@@ -34,7 +34,51 @@ Experience Jamui Super Mart as a native application on your Android device.
 
 ## 🛠️ Technical Architecture
 
-![Jamui Super Mart Architecture](JamUI-Arch.png)
+![Jamui Super Mart Architecture](JamUI-Arch.png) Old 
+
+graph TD
+    %% User/Customer Flow
+    Customer((Customer)) -->|Browse| Storefront[React Storefront]
+    Storefront -->|Quick Checkout| Cart{Cart System}
+    Cart -->|Validation| Validation[Name & Phone Check]
+    Validation -->|Success| WhatsApp[WhatsApp Redirect]
+    Validation -->|Success| GH_API[GitHub API - Save Order]
+
+    %% Admin Flow
+    Admin((Admin)) -->|Auth| Login[Admin Login]
+    Login -->|Access| Dashboard[Admin Dashboard v4.0]
+    
+    subgraph Dashboard_Features [Admin Suite]
+        Analytics[Live Sales Analytics]
+        Orders[Order Management]
+        Inventory[Stock & Product Editor]
+        Promo[Promo Code Manager]
+        Notices[Notice Board Banner]
+        Logs[Stock History Audit]
+    end
+    
+    Dashboard --> Dashboard_Features
+    Orders -->|Approve| StockUpdate[Auto Stock Deduction]
+    Orders -->|Print| PDF[Professional PDF Invoice]
+    Inventory -->|Toggle| Media[Icon vs Photo Toggle]
+
+    %% CI/CD & Build Flow
+    Developer((Developer)) -->|Push Code| GitHub[GitHub Repo]
+    
+    subgraph CI_CD [GitHub Actions]
+        BuildWeb[Build Web App]
+        BuildAPK[Build Signed Android APK]
+        Deploy[Deploy to GH Pages]
+    end
+    
+    GitHub --> CI_CD
+    Deploy --> Storefront
+    BuildAPK --> APK_Branch[(android-build branch)]
+    APK_Branch -->|Download| AndroidApp[Android Mobile App]
+
+    %% Database
+    GH_API <-->|Read/Write| DB[(db.json)]
+
 
 ### 1. Git-as-a-Backend (GaaB)
 The core innovation of this project is its serverless data management. Unlike standard applications that require a running database server (like PostgreSQL or MongoDB), this app uses the GitHub repository itself as a structured database.
