@@ -189,6 +189,31 @@ export const apiFetch = async (endpoint, options = {}) => {
     return db.orders;
   }
 
+  // GET Single Order by ID
+  if (endpoint.startsWith('/orders/') && !options.method && !endpoint.includes('/history/')) {
+    const id = parseInt(endpoint.split('/').pop());
+    return db.orders.find(o => o.id === id);
+  }
+
+  // GET Order History by Phone (with verification)
+  if (endpoint.startsWith('/orders/history/') && !options.method) {
+    const parts = endpoint.split('?');
+    const phone = parts[0].split('/').pop();
+    const query = new URLSearchParams(parts[1] || '');
+    const verifyId = query.get('verifyId');
+
+    const history = (db.orders || []).filter(o => 
+      o.customer && o.customer.phone && o.customer.phone.includes(phone)
+    );
+
+    if (verifyId) {
+      const cleanVerifyId = verifyId.toString().toUpperCase().replace('JM-', '').trim();
+      const isVerified = history.some(o => o.id.toString() === cleanVerifyId);
+      if (isVerified) return history;
+    }
+    return [];
+  }
+
   if (endpoint.startsWith('/orders/') && options.method === 'PUT') {
     const id = parseInt(endpoint.split('/').pop());
     const { status, estimatedDelivery, rejectReason } = JSON.parse(options.body);

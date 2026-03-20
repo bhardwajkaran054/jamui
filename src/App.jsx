@@ -377,12 +377,15 @@ export default function App() {
         body: JSON.stringify(orderData)
       });
 
-      if (!result || !result.id) {
+      // 1.5 Handle both result.id (Local Node) and result.success (GitHub)
+      const orderId = result?.id || result?.order?.id;
+      const isSuccess = result?.success || !!result?.id;
+
+      if (!result || !isSuccess || !orderId) {
         throw new Error('Server failed to confirm order');
       }
 
       // 2. Local feedback and cleanup
-      const orderId = result.id;
       localStorage.setItem('latestOrderId', orderId);
       
       const localOrder = { ...orderData, id: orderId, status: 'pending' };
