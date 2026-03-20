@@ -7,7 +7,7 @@
       "unit": "26kg",
       "category": "Rice",
       "emoji": "Kasturi Usna 26kg",
-      "stock": 10,
+      "stock": 9,
       "useImage": false,
       "image": ""
     },
@@ -18,7 +18,7 @@
       "unit": "1kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 49
+      "stock": 48
     },
     {
       "id": 4,
@@ -27,7 +27,7 @@
       "unit": "26kg",
       "category": "Rice",
       "emoji": "🌾",
-      "stock": 7
+      "stock": 6
     },
     {
       "id": 5,
@@ -220,7 +220,8 @@
         "phone": "9999999999"
       },
       "timestamp": "2026-03-20T02:26:45.227Z",
-      "status": "pending"
+      "status": "completed",
+      "estimatedDelivery": "30-45 mins"
     },
     {
       "id": 1773973356611,
@@ -394,6 +395,33 @@
     "active": true
   },
   "stockLogs": [
+    {
+      "id": 1773974274577.3718,
+      "productId": 4,
+      "productName": "Fortune Mini Kit 26 kg",
+      "oldStock": 7,
+      "newStock": 6,
+      "reason": "Order Approved (#JM-604576)",
+      "timestamp": "2026-03-20T02:37:54.577Z"
+    },
+    {
+      "id": 1773974274577.2576,
+      "productId": 2,
+      "productName": "Kasturi Rice 1 kg",
+      "oldStock": 49,
+      "newStock": 48,
+      "reason": "Order Approved (#JM-604576)",
+      "timestamp": "2026-03-20T02:37:54.577Z"
+    },
+    {
+      "id": 1773974274577.3972,
+      "productId": 1,
+      "productName": "Kasturi Rice 26 kg",
+      "oldStock": 10,
+      "newStock": 9,
+      "reason": "Order Approved (#JM-604576)",
+      "timestamp": "2026-03-20T02:37:54.577Z"
+    },
     {
       "id": 1773973409102.3408,
       "productId": 5,
