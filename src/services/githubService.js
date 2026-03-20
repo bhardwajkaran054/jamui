@@ -8,11 +8,6 @@ const REPO_OWNER = 'bhardwajkaran054';
 const REPO_NAME = 'jamui';
 const DB_PATH = 'public/db.json';
 
-// FALLBACK TOKEN: This is a restricted, public-only token for saving orders.
-// In a real production app, this should be an edge function/proxy.
-// For this Git-as-a-Backend setup, we use it for mobile/private window writes.
-const PUBLIC_WRITE_TOKEN = 'ghp_rKk7L6p6X8N9M0P1Q2R3S4T5U6V7W8X9Y0Z1'; // Placeholder, will use admin's token if available
-
 // Helper to clear invalid tokens from storage
 const clearBadToken = (token) => {
   if (!token || typeof window === 'undefined') return;
@@ -52,7 +47,7 @@ const getToken = () => {
     const publicToken = typeof window !== 'undefined' ? localStorage.getItem('publicOrderToken') : null;
     if (publicToken && !isBad(publicToken)) return publicToken.trim();
 
-    // 3. Environment Variable (CI/CD / Local Dev)
+    // 3. Environment Variable (VITE_GITHUB_TOKEN)
     const envToken = import.meta.env.VITE_GITHUB_TOKEN;
     if (envToken && !isBad(envToken)) return envToken.trim();
 
