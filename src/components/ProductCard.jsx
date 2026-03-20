@@ -22,15 +22,15 @@ export default function ProductCard({ product, quantity, onAdd, onRemove, isAdmi
       
       <div className="p-6 flex-1">
         <div className="flex items-start justify-between mb-6">
-          <div className="bg-gray-50 w-20 h-20 flex items-center justify-center rounded-[1.5rem] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
-            {product.image ? (
+          <div className="bg-gray-50 w-24 h-24 sm:w-20 sm:h-20 flex items-center justify-center rounded-[1.5rem] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden relative">
+            {product.useImage && product.image ? (
               <img 
                 src={product.image} 
                 alt={product.name} 
                 className="w-full h-full object-cover rounded-[1.5rem]"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/150?text=' + encodeURIComponent(product.emoji);
+                  e.target.parentElement.innerHTML = `<span class="text-4xl">${product.emoji}</span>`;
                 }}
               />
             ) : (
@@ -43,10 +43,10 @@ export default function ProductCard({ product, quantity, onAdd, onRemove, isAdmi
           </span>
         </div>
         
-        <h3 className="font-bold text-gray-800 text-lg mb-2 leading-tight group-hover:text-green-700 transition-colors">{product.name}</h3>
+        <h3 className="font-bold text-gray-800 text-xl sm:text-lg mb-2 leading-tight group-hover:text-green-700 transition-colors">{product.name}</h3>
         
         <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-green-700">₹{product.price}</span>
+          <span className="text-3xl sm:text-2xl font-black text-green-700">₹{product.price}</span>
           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">/ {product.unit}</span>
         </div>
         <div className="mt-3">

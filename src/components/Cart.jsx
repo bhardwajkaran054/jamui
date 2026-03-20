@@ -6,6 +6,11 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
   const [appliedPromo, setAppliedPromo] = useState(null)
   const [promoError, setPromoError] = useState('')
   const [selectedZone, setSelectedZone] = useState(deliveryZones[0] || null)
+  
+  // Quick Checkout States
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [formErrors, setFormErrors] = useState({})
 
   const cartItems = products.filter(p => cart[p.id] > 0)
   const subtotal = cartItems.reduce((sum, p) => sum + p.price * cart[p.id], 0)
@@ -15,8 +20,25 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
+    // Load customer info from localStorage if available
+    const savedName = localStorage.getItem('customerName')
+    const savedPhone = localStorage.getItem('customerPhone')
+    if (savedName) setCustomerName(savedName)
+    if (savedPhone) setCustomerPhone(savedPhone)
     return () => { document.body.style.overflow = '' }
   }, [])
+
+  const validateForm = () => {
+    const errors = {}
+    if (!customerName.trim()) errors.name = 'Name is required'
+    if (!customerPhone.trim()) {
+      errors.phone = 'Phone is required'
+    } else if (!/^\d{10}$/.test(customerPhone.replace(/\D/g, '').slice(-10))) {
+      errors.phone = 'Valid 10-digit number required'
+    }
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleApplyPromo = () => {
     setPromoError('')
@@ -34,9 +56,18 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
   }
 
   const handleOrderClick = async () => {
-    const success = await onOrder(cartItems, total)
+    if (!validateForm()) return
+
+    // Save to localStorage for future quick checkout
+    localStorage.setItem('customerName', customerName)
+    localStorage.setItem('customerPhone', customerPhone)
+
+    const success = await onOrder(cartItems, total, { name: customerName, phone: customerPhone })
     if (success) {
-      let msg = 'Hello! I want to place an order:\n\n'
+      let msg = `*NEW ORDER - JAMUI SUPER MART*\n\n`
+      msg += `*Customer Details:*\n`
+      msg += `👤 Name: ${customerName}\n`
+      msg += `📞 Phone: ${customerPhone}\n\n`
       msg += `*Order Summary:*\n`
       cartItems.forEach(p => {
         msg += `${p.emoji} ${p.name} x${cart[p.id]} = \u20b9${p.price * cart[p.id]}\n`
@@ -150,6 +181,33 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Quick Checkout Section */}
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Checkout Details</p>
+                <div className="space-y-3">
+                  <div>
+                    <input 
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Your Full Name"
+                      className={`w-full bg-white border ${formErrors.name ? 'border-red-500' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none`}
+                    />
+                    {formErrors.name && <p className="text-[10px] text-red-500 font-bold mt-1 ml-1">{formErrors.name}</p>}
+                  </div>
+                  <div>
+                    <input 
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="WhatsApp Phone Number"
+                      className={`w-full bg-white border ${formErrors.phone ? 'border-red-500' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-green-500 outline-none`}
+                    />
+                    {formErrors.phone && <p className="text-[10px] text-red-500 font-bold mt-1 ml-1">{formErrors.phone}</p>}
+                  </div>
+                </div>
               </div>
 
               {/* Delivery Zone Section */}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Search, Filter, ArrowUpDown, ChevronDown, ShoppingBag, Info, AlertTriangle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ProductCard from './ProductCard'
 
 const ProductSkeleton = () => (
   <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100 animate-pulse">
@@ -14,7 +15,7 @@ const ProductSkeleton = () => (
   </div>
 )
 
-export default function ProductList({ products, categories, cart, onAdd, onRemove, isAdmin, loading }) {
+export default function ProductList({ products, categories, cart, onAdd, onRemove, isAdmin, onAdminAction, loading }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [sortBy, setSortBy] = useState('none')
@@ -146,82 +147,16 @@ export default function ProductList({ products, categories, cart, onAdd, onRemov
               key={product.id}
               variants={itemVariants}
               whileHover={{ y: -8 }}
-              className="bg-white rounded-[2.5rem] p-6 shadow-sm hover:shadow-2xl hover:shadow-green-100/50 border border-gray-100 transition-all group relative overflow-hidden"
             >
-              {product.stock <= 0 && (
-                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-6">
-                  <div className="bg-red-50 p-4 rounded-3xl mb-3">
-                    <AlertTriangle className="w-8 h-8 text-red-600" />
-                  </div>
-                  <p className="text-red-600 font-black text-lg">Out of Stock</p>
-                  <p className="text-gray-500 text-sm font-medium">Coming back soon!</p>
-                </div>
-              )}
-
-              <div className="bg-gray-50 aspect-square rounded-[2rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 relative overflow-hidden">
-                {product.image ? (
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.parentElement.innerHTML = `<span class="text-7xl">${product.emoji}</span>`;
-                    }}
-                  />
-                ) : (
-                  <span className="text-7xl">{product.emoji}</span>
-                )}
-                {product.stock > 0 && product.stock <= 5 && (
-                  <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm border border-orange-200 z-10">
-                    <Info className="w-3 h-3" />
-                    ONLY {product.stock} LEFT
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-1 mb-6">
-                <p className="text-xs font-black text-green-600 uppercase tracking-widest">{product.category}</p>
-                <h3 className="text-xl font-black text-gray-800 line-clamp-1">{product.name}</h3>
-                <p className="text-sm font-bold text-gray-400">{product.unit}</p>
-              </div>
-
-              <div className="flex items-center justify-between mt-auto">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-gray-800">₹{product.price}</span>
-                </div>
-                
-                {cart[product.id] ? (
-                  <div className="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl shadow-inner border border-gray-200/50">
-                    <button 
-                      onClick={() => onRemove(product)}
-                      className="w-10 h-10 bg-white text-red-600 rounded-xl font-black shadow-sm hover:bg-red-50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center font-black text-gray-700">{cart[product.id]}</span>
-                    <button 
-                      onClick={() => onAdd(product)}
-                      disabled={product.stock <= cart[product.id]}
-                      className={`w-10 h-10 bg-white text-green-700 rounded-xl font-black shadow-sm transition-all flex items-center justify-center ${
-                        product.stock <= cart[product.id] ? 'opacity-30 cursor-not-allowed' : 'hover:bg-green-50 hover:scale-105 active:scale-95'
-                      }`}
-                    >
-                      +
-                    </button>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => onAdd(product)}
-                    disabled={product.stock <= 0}
-                    className={`px-6 py-3 bg-green-600 text-white rounded-2xl font-black shadow-lg shadow-green-100 transition-all flex items-center gap-2 group/btn ${
-                      product.stock <= 0 ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:bg-green-700 hover:scale-105 active:scale-95 hover:shadow-green-200'
-                    }`}
-                  >
-                    Add <ShoppingBag className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </button>
-                )}
-              </div>
+              <ProductCard 
+                product={product}
+                quantity={cart[product.id] || 0}
+                onAdd={onAdd}
+                onRemove={onRemove}
+                isAdmin={isAdmin}
+                onEdit={() => onAdminAction('edit', product)}
+                onDelete={() => onAdminAction('delete', product)}
+              />
             </motion.div>
           ))}
         </motion.div>

@@ -964,9 +964,17 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
                             {order.items.map((item, idx) => (
                               <div key={idx} className="flex items-center justify-between bg-gray-50/50 p-4 rounded-2xl border border-transparent hover:border-gray-200 transition-all">
                                 <div className="flex items-center gap-4">
-                                  <div className="bg-gray-100 w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden">
+                                  <div className="bg-gray-100 w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden relative">
                                     {item.image ? (
-                                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                      <img 
+                                        src={item.image} 
+                                        alt={item.name} 
+                                        className="w-full h-full object-cover" 
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          e.target.parentElement.innerHTML = `<span class="text-2xl">${item.emoji}</span>`;
+                                        }}
+                                      />
                                     ) : (
                                       <span className="text-2xl">{item.emoji}</span>
                                     )}
@@ -1248,9 +1256,17 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
               {products.map(product => (
                 <div key={product.id} className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm group hover:shadow-2xl hover:shadow-green-900/5 transition-all">
                   <div className="flex justify-between items-start mb-6">
-                    <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
-                      {product.image ? (
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden relative">
+                      {product.useImage && product.image ? (
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.parentElement.innerHTML = `<span class="text-3xl">${product.emoji}</span>`;
+                          }}
+                        />
                       ) : (
                         <span className="text-3xl">{product.emoji}</span>
                       )}

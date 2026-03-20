@@ -239,7 +239,7 @@ export default function App() {
     window.location.href = '/'
   }
 
-  const handleOrder = async (cartItems, total) => {
+  const handleOrder = async (cartItems, total, customerInfo) => {
     try {
       // Attempt to save order record in GitHub Backend (Requires Token)
       // Since public users don't have tokens, this will fail.
@@ -247,6 +247,7 @@ export default function App() {
       await apiFetch('/orders', {
         method: 'POST',
         body: JSON.stringify({ 
+          customer: customerInfo,
           items: cartItems.map(item => ({
             id: item.id,
             name: item.name,
