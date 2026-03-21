@@ -80,7 +80,7 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
       msg += `--------------------------\n\n`
       msg += `Please confirm my order and delivery address.`
       
-      window.open(`https://wa.me/917856053987?text=${encodeURIComponent(msg)}`, '_blank')
+      window.open(`https://wa.me/916202989990?text=${encodeURIComponent(msg)}`, '_blank')
       onClose()
     }
   }
