@@ -187,23 +187,31 @@
   ],
   "orders": [
     {
-      "id": 1774113122565,
+      "id": 1774113237602,
       "items": [
         {
-          "id": 2,
-          "name": "Kasturi Rice 1 kg",
-          "price": 35,
+          "id": 17,
+          "name": "Sweet",
+          "price": 19,
           "quantity": 1,
-          "emoji": "🌾",
-          "category": "Rice"
+          "emoji": "🫘",
+          "category": "Atta & Sugar"
+        },
+        {
+          "id": 18,
+          "name": "Allu",
+          "price": 10,
+          "quantity": 1,
+          "emoji": "🥔",
+          "category": "Veg"
         }
       ],
-      "total": 85,
+      "total": 79,
       "customer": {
         "name": "Karan",
         "phone": "9850171969"
       },
-      "timestamp": "2026-03-21T17:12:02.565Z",
+      "timestamp": "2026-03-21T17:13:57.602Z",
       "status": "pending"
     },
     {
