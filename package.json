@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:api": "tsc --project api/tsconfig.json",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:api": "tsc --noEmit --project api/tsconfig.json",
