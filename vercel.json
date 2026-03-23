@@ -7,7 +7,7 @@
     { "source": "/api/", "destination": "/api/index.js" },
     { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/admin/:path*", "destination": "/index.html" },
-    { "source": "/", "destination": "/index.html", "check": true }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
