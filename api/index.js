@@ -302,6 +302,22 @@ async function handler(req, res) {
       return Response.json({ success: true });
     }
 
+    // Debug endpoint - remove in production
+    if (path === '/debug' && req.method === 'GET') {
+      try {
+        const admins = await sql`SELECT id, username FROM admins`;
+        const products = await sql`SELECT COUNT(*) as count FROM products`;
+        return Response.json({
+          dbStatus: 'connected',
+          admins: admins,
+          productCount: products[0]?.count,
+          jwtSecret: JWT_SECRET.substring(0, 4) + '...'
+        });
+      } catch (err) {
+        return Response.json({ dbStatus: 'error', error: err.message });
+      }
+    }
+
     // Health check
     if (path === '/health' && req.method === 'GET') {
       return Response.json({ status: 'ok', time: new Date().toISOString() });
