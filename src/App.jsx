@@ -9,8 +9,8 @@ import AdminLogin from './components/AdminLogin'
 import SecretChallenge from './components/SecretChallenge'
 import AdminDashboard from './components/AdminDashboard'
 import ProductEditModal from './components/ProductEditModal'
-import { CheckCircle, AlertCircle, X } from 'lucide-react'
-import { apiFetch, API_URL } from './api'
+import { CheckCircle, AlertCircle, X, Key } from 'lucide-react'
+import { apiFetch } from './api'
 import { soundService } from './services/soundService'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -32,7 +32,7 @@ export default function App() {
   const [trackingOrderId, setTrackingOrderId] = useState(null)
   const [token, setToken] = useState(() => {
     try {
-      return localStorage.getItem('githubToken')
+      return sessionStorage.getItem('jamuiToken')
     } catch (e) {
       return null
     }
@@ -47,7 +47,7 @@ export default function App() {
     }
   })
   const [toast, setToast] = useState(null)
-  
+
   // Admin Editing States
   const [editingProduct, setEditingProduct] = useState(null)
   const [isAdding, setIsAdding] = useState(false)
@@ -101,18 +101,12 @@ export default function App() {
     try {
       setLoading(true)
       const data = await apiFetch('/products')
-      
+
       let productData = data
-      // Check for settings wrapped in data (GitHub Backend mode)
       if (data && data.products) {
         productData = data.products
-        if (data.settings?.publicOrderToken) {
-          import('./services/githubService').then(service => {
-            service.setPublicOrderToken(data.settings.publicOrderToken)
-          })
-        }
       }
-      
+
       setProducts(productData)
     } catch (err) {
       console.error('[API ERROR] Products fetch failed:', err.message)
@@ -211,7 +205,7 @@ export default function App() {
     } else if (action === 'updateOrderStatus') {
       try {
         let updateData = { status: data.status }
-        
+
         if (data.status === 'completed') {
           const hours = prompt('Estimated delivery in (hours):', '2')
           if (hours) {
@@ -269,7 +263,7 @@ export default function App() {
 
   const handleLogin = (newToken) => {
     setToken(newToken)
-    localStorage.setItem('githubToken', newToken)
+    sessionStorage.setItem('jamuiToken', newToken)
     setIsAdmin(true)
     setShowLogin(false)
     showNotification('Welcome back, Admin!')
@@ -277,7 +271,7 @@ export default function App() {
 
   const handleLogout = () => {
     setToken(null)
-    localStorage.removeItem('githubToken')
+    sessionStorage.removeItem('jamuiToken')
     sessionStorage.removeItem('passedSecret')
     setPassedSecret(false)
     setIsAdmin(false)
@@ -286,12 +280,9 @@ export default function App() {
 
   const handleOrder = async (cartItems, total, customerInfo) => {
     try {
-      // Attempt to save order record in GitHub Backend (Requires Token)
-      // Since public users don't have tokens, this will fail.
-      // We wrap it in a try-catch to allow the WhatsApp redirect even if saving fails.
       const result = await apiFetch('/orders', {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           customer: customerInfo,
           items: cartItems.map(item => ({
             id: item.id,
@@ -300,13 +291,9 @@ export default function App() {
             quantity: cart[item.id],
             emoji: item.emoji,
             category: item.category
-          })), 
-          total 
+          })),
+          total
         })
-      }).catch(err => {
-        console.warn('[ORDER] Could not save record to GitHub (Public access)', err.message);
-        return { success: false };
-        // We continue anyway so the customer can still order via WhatsApp
       })
 
       setCart({})
@@ -321,12 +308,12 @@ export default function App() {
         origin: { y: 0.6 },
         colors: ['#166534', '#15803d', '#22c55e']
       })
-      showNotification('Order ready! Redirecting to WhatsApp...')
+      showNotification('Order placed successfully!')
       return true
     } catch (err) {
-      // This catch is for any critical logic errors
-      console.error('[ORDER ERROR]', err);
-      return true // Still return true to allow WhatsApp flow
+      console.error('[ORDER ERROR]', err)
+      showNotification(err.message || 'Order failed', 'error')
+      return false
     }
   }
 
@@ -357,7 +344,7 @@ export default function App() {
           <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
           <div>
             <h2 className="text-2xl font-black text-gray-900">Jamui Super Mart</h2>
-            <p className="text-gray-500 font-bold animate-pulse mt-1">Connecting to repository...</p>
+            <p className="text-gray-500 font-bold animate-pulse mt-1">Loading products...</p>
           </div>
         </div>
       </div>
@@ -371,24 +358,10 @@ export default function App() {
           <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-200">
             <Key className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Setup Required</h2>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">No Products Available</h2>
           <p className="text-gray-500 font-medium mb-8 leading-relaxed">
-            To start using Jamui Super Mart, you need to provide your GitHub Personal Access Token (PAT). This allows the app to securely read and write your product data.
+            No products are currently available. Please check back later or contact support.
           </p>
-          <div className="flex flex-col gap-4">
-            <button 
-              onClick={() => {
-                setShowSecret(true)
-                // We'll trigger the login flow after the secret challenge
-              }}
-              className="bg-blue-600 text-white font-black px-8 py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-            >
-              Configure GitHub Token
-            </button>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-              Security: Your token is stored only in your browser.
-            </p>
-          </div>
         </div>
       </div>
     )
@@ -398,7 +371,7 @@ export default function App() {
   if (isPathAdmin && isAdmin && token) {
     return (
       <>
-        <AdminDashboard 
+        <AdminDashboard
           token={token}
           onLogout={handleLogout}
           onAdminAction={handleAdminAction}
@@ -407,7 +380,7 @@ export default function App() {
           orders={orders}
         />
         {(editingProduct || isAdding) && (
-          <ProductEditModal 
+          <ProductEditModal
             product={editingProduct}
             categories={categories.filter(c => c !== 'All')}
             onSave={(p) => handleAdminAction('save', p)}
@@ -432,30 +405,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
-        cartCount={cartCount} 
-        onCartClick={() => setCartOpen(true)} 
+      <Header
+        cartCount={cartCount}
+        onCartClick={() => setCartOpen(true)}
         onTrackClick={() => setTrackingOpen(true)}
-        isAdmin={isAdmin} 
-        notice={notice} 
+        isAdmin={isAdmin}
+        notice={notice}
       />
       <Hero />
       <Steps />
-      <ProductList 
+      <ProductList
         products={products}
         categories={categories}
-        cart={cart} 
-        onAdd={addToCart} 
+        cart={cart}
+        onAdd={addToCart}
         onRemove={removeFromCart}
-        isAdmin={isAdmin} // Pass isAdmin to show edit/delete buttons if logged in
+        isAdmin={isAdmin}
         onAdminAction={handleAdminAction}
         loading={loading}
       />
-      <Footer 
-        isAdmin={isAdmin} 
+      <Footer
+        isAdmin={isAdmin}
         onLogout={handleLogout}
       />
-      
+
       {cartOpen && (
         <Cart
           cart={cart}
@@ -470,7 +443,7 @@ export default function App() {
       )}
 
       {trackingOpen && (
-        <OrderTracking 
+        <OrderTracking
           initialOrderId={trackingOrderId}
           onClose={() => {
             setTrackingOpen(false)
@@ -480,7 +453,7 @@ export default function App() {
       )}
 
       {showSecret && (
-        <SecretChallenge 
+        <SecretChallenge
           onPass={() => {
             setPassedSecret(true)
             sessionStorage.setItem('passedSecret', 'true')
@@ -495,7 +468,7 @@ export default function App() {
       )}
 
       {showLogin && (
-        <AdminLogin 
+        <AdminLogin
           onLogin={handleLogin}
           onClose={() => {
             setShowLogin(false)

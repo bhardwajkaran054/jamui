@@ -1,20 +1,11 @@
-import { loadDb, saveDb } from './db.js';
+import { initDb, sql } from './db.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
 
-// In-memory store for admin sessions (reset on cold starts)
-const adminSessions = new Map();
-
-function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => resolve(body));
-    req.on('error', reject);
-  });
-}
+// Ensure DB is initialized on cold start
+await initDb();
 
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,9 +13,7 @@ async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
+    return new Response(null, { status: 204 });
   }
 
   const url = req.url.split('?')[0];
@@ -33,351 +22,256 @@ async function handler(req, res) {
   try {
     // GET /api/products
     if (path === '/products' && req.method === 'GET') {
-      const db = loadDb();
-      res.json({ products: db.products, settings: db.settings || {} });
-      return;
+      const { rows } = await sql`SELECT * FROM products ORDER BY id`;
+      const settingsResult = await sql`SELECT value FROM settings WHERE key = 'general'`;
+      const settings = settingsResult.rows[0] ? settingsResult.rows[0].value : {};
+      return Response.json({ products: rows, settings });
     }
 
     // GET /api/categories
     if (path === '/categories' && req.method === 'GET') {
-      const db = loadDb();
-      res.json(['All', ...db.categories]);
-      return;
+      const { rows } = await sql`SELECT DISTINCT category FROM products ORDER BY category`;
+      return Response.json(['All', ...rows.map(r => r.category)]);
     }
 
     // POST /api/login
     if (path === '/login' && req.method === 'POST') {
-      const body = JSON.parse(await getRawBody(req));
+      const body = await req.json();
       const { username, password } = body;
-      const db = loadDb();
-      const admin = db.admins.find(a => a.username === username);
+      const { rows } = await sql`SELECT * FROM admins WHERE username = ${username}`;
+      const admin = rows[0];
       if (!admin || !bcrypt.compareSync(password, admin.password)) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Invalid credentials' }));
-        return;
+        return Response.json({ error: 'Invalid credentials' }, { status: 401 });
       }
       const token = jwt.sign({ id: admin.id, username: admin.username }, JWT_SECRET, { expiresIn: '24h' });
-      res.json({ token, username: admin.username });
-      return;
+      return Response.json({ token, username: admin.username });
     }
 
     // Auth middleware
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.get('authorization')?.split(' ')[1];
     let admin = null;
     if (token) {
       try {
         admin = jwt.verify(token, JWT_SECRET);
       } catch (e) {
-        // Token invalid, continue without auth for public endpoints
+        // Token invalid
       }
     }
 
     // POST /api/products (protected)
     if (path === '/products' && req.method === 'POST') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const body = JSON.parse(await getRawBody(req));
-      const db = loadDb();
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const body = await req.json();
       const { id, name, price, unit, category, emoji, stock } = body;
+
       if (id) {
-        const idx = db.products.findIndex(p => p.id === id);
-        if (idx !== -1) {
-          const oldStock = db.products[idx].stock || 0;
+        const { rows: existing } = await sql`SELECT stock FROM products WHERE id = ${id}`;
+        if (existing.length > 0) {
+          const oldStock = existing[0].stock || 0;
           if (oldStock !== stock) {
-            db.stockLogs.unshift({
-              id: Date.now(), productId: id, productName: name,
-              oldStock, newStock: stock, reason: 'Manual Admin Update',
-              timestamp: new Date().toISOString()
-            });
+            await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
+              VALUES (${id}, ${name}, ${oldStock}, ${stock}, ${'Manual Admin Update'}, CURRENT_TIMESTAMP)`;
           }
-          db.products[idx] = { ...db.products[idx], name, price, unit, category, emoji, stock };
+          await sql`UPDATE products SET name = ${name}, price = ${price}, unit = ${unit}, category = ${category}, emoji = ${emoji}, stock = ${stock} WHERE id = ${id}`;
         }
       } else {
-        const newId = Math.max(0, ...db.products.map(p => p.id)) + 1;
-        db.products.push({ id: newId, name, price, unit, category, emoji, stock });
-        db.stockLogs.unshift({
-          id: Date.now(), productId: newId, productName: name,
-          oldStock: 0, newStock: stock, reason: 'New Product Added',
-          timestamp: new Date().toISOString()
-        });
+        const { rows: maxRow } = await sql`SELECT MAX(id) as max_id FROM products`;
+        const newId = (maxRow[0].max_id || 0) + 1;
+        await sql`INSERT INTO products (id, name, price, unit, category, emoji, stock) VALUES (${newId}, ${name}, ${price}, ${unit}, ${category}, ${emoji}, ${stock})`;
+        await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
+          VALUES (${newId}, ${name}, ${0}, ${stock}, ${'New Product Added'}, CURRENT_TIMESTAMP)`;
       }
-      if (category && !db.categories.includes(category)) db.categories.push(category);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+
+      // Auto-add category
+      const { rows: catRows } = await sql`SELECT DISTINCT category FROM products WHERE category = ${category}`;
+      // Categories are derived, no need to insert
+
+      return Response.json({ success: true });
     }
 
     // DELETE /api/products/:id (protected)
     if (path.match(/^\/products\/\d+$/) && req.method === 'DELETE') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const id = parseInt(path.split('/')[2]);
-      const db = loadDb();
-      const product = db.products.find(p => p.id === id);
-      if (product) {
-        db.stockLogs.unshift({
-          id: Date.now(), productId: id, productName: product.name,
-          oldStock: product.stock || 0, newStock: 0, reason: 'Product Deleted',
-          timestamp: new Date().toISOString()
-        });
+      const { rows: product } = await sql`SELECT * FROM products WHERE id = ${id}`;
+      if (product.length > 0) {
+        await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
+          VALUES (${id}, ${product[0].name}, ${product[0].stock || 0}, ${0}, ${'Product Deleted'}, CURRENT_TIMESTAMP)`;
       }
-      db.products = db.products.filter(p => p.id !== id);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      await sql`DELETE FROM products WHERE id = ${id}`;
+      return Response.json({ success: true });
     }
 
     // POST /api/orders
     if (path === '/orders' && req.method === 'POST') {
-      const body = JSON.parse(await getRawBody(req));
+      const body = await req.json();
       const { items, total, customer, promoCode, deliveryFee } = body;
-      const db = loadDb();
       const orderId = Date.now();
-      db.orders.unshift({
-        id: orderId, items, total, customer, promoCode, deliveryFee,
-        timestamp: new Date().toISOString(), status: 'pending'
-      });
-      saveDb(db);
-      res.json({ success: true, order: db.orders[0] });
-      return;
+      await sql`INSERT INTO orders (id, items, total, customer, promo_code, delivery_fee, timestamp, status)
+        VALUES (${orderId}, ${JSON.stringify(items)}, ${total}, ${JSON.stringify(customer)}, ${promoCode || null}, ${deliveryFee || 0}, CURRENT_TIMESTAMP, 'pending')`;
+      return Response.json({ success: true, order: { id: orderId, timestamp: new Date().toISOString() } });
     }
 
     // GET /api/orders (protected)
     if (path === '/orders' && req.method === 'GET') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const db = loadDb();
-      res.json(db.orders);
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const { rows } = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
+      return Response.json(rows.map(row => ({
+        ...row,
+        items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+        customer: typeof row.customer === 'string' ? JSON.parse(row.customer) : row.customer,
+      })));
     }
 
     // PUT /api/orders/:id (protected)
     if (path.match(/^\/orders\/\d+$/) && req.method === 'PUT') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const id = parseInt(path.split('/')[2]);
-      const body = JSON.parse(await getRawBody(req));
+      const body = await req.json();
       const { status, deliveryMessage, rejectionReason, deliveryHours, driver, cancelReason } = body;
-      const db = loadDb();
-      const order = db.orders.find(o => o.id === id);
-      if (order) {
-        if (status === 'completed' && order.status !== 'completed') {
-          order.items.forEach(item => {
-            const product = db.products.find(p => p.id === item.id);
-            if (product) {
-              const oldStock = product.stock || 0;
-              product.stock = Math.max(0, oldStock - item.quantity);
-              db.stockLogs.unshift({
-                id: Date.now() + Math.random(), productId: product.id,
-                productName: product.name, oldStock, newStock: product.stock,
-                reason: `Order Approved (#JM-${order.id.toString().slice(-6)})`,
-                timestamp: new Date().toISOString()
-              });
-            }
-          });
+
+      const { rows: orderRows } = await sql`SELECT * FROM orders WHERE id = ${id}`;
+      const order = orderRows[0];
+      if (order && status === 'completed' && order.status !== 'completed') {
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        for (const item of items) {
+          const { rows: productRows } = await sql`SELECT stock FROM products WHERE id = ${item.id}`;
+          if (productRows.length > 0) {
+            const oldStock = productRows[0].stock || 0;
+            const newStock = Math.max(0, oldStock - item.quantity);
+            await sql`UPDATE products SET stock = ${newStock} WHERE id = ${item.id}`;
+            await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
+              VALUES (${item.id}, ${item.name}, ${oldStock}, ${newStock}, ${`Order Approved (#JM-${id.toString().slice(-6)})`}, CURRENT_TIMESTAMP)`;
+          }
         }
-        if (status) order.status = status;
-        if (deliveryMessage) order.deliveryMessage = deliveryMessage;
-        if (rejectionReason) order.rejectionReason = rejectionReason;
-        if (deliveryHours) { order.deliveryHours = parseInt(deliveryHours); order.approvalTimestamp = new Date().toISOString(); }
-        if (driver) order.driver = driver;
-        if (cancelReason) order.cancelReason = cancelReason;
-        saveDb(db);
       }
-      res.json({ success: true });
-      return;
+
+      const updates = [];
+      const vals = [];
+      if (status) { updates.push('status'); vals.push(status); }
+      if (deliveryMessage) { updates.push('delivery_message'); vals.push(deliveryMessage); }
+      if (rejectionReason) { updates.push('rejection_reason'); vals.push(rejectionReason); }
+      if (deliveryHours) { updates.push('delivery_hours'); updates.push('approval_timestamp'); vals.push(parseInt(deliveryHours), new Date().toISOString()); }
+      if (driver) { updates.push('driver'); vals.push(JSON.stringify(driver)); }
+      if (cancelReason) { updates.push('cancel_reason'); vals.push(cancelReason); }
+
+      if (updates.length > 0) {
+        const setClause = updates.map((u, i) => `${u} = $${i + 1}`).join(', ');
+        await sql.query(`UPDATE orders SET ${setClause} WHERE id = $${vals.length + 1}`, [...vals, id]);
+      }
+
+      return Response.json({ success: true });
     }
 
     // DELETE /api/orders/:id (protected)
     if (path.match(/^\/orders\/\d+$/) && req.method === 'DELETE') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const id = parseInt(path.split('/')[2]);
-      const db = loadDb();
-      db.orders = db.orders.filter(o => o.id !== id);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      await sql`DELETE FROM orders WHERE id = ${id}`;
+      return Response.json({ success: true });
     }
 
     // GET /api/stock-logs (protected)
     if (path === '/stock-logs' && req.method === 'GET') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const db = loadDb();
-      res.json(db.stockLogs || []);
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const { rows } = await sql`SELECT * FROM stock_logs ORDER BY timestamp DESC LIMIT 100`;
+      return Response.json(rows);
     }
 
     // GET /api/drivers (protected)
     if (path === '/drivers' && req.method === 'GET') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const db = loadDb();
-      res.json(db.drivers || []);
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const { rows } = await sql`SELECT * FROM drivers WHERE active = true ORDER BY name`;
+      return Response.json(rows);
     }
 
     // POST /api/drivers (protected)
     if (path === '/drivers' && req.method === 'POST') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const body = await req.json();
+      const { id, name, phone, vehicle, active } = body;
+      if (id) {
+        await sql`UPDATE drivers SET name = ${name}, phone = ${phone}, vehicle = ${vehicle}, active = ${active} WHERE id = ${id}`;
+      } else {
+        await sql`INSERT INTO drivers (name, phone, vehicle, active) VALUES (${name}, ${phone}, ${vehicle}, ${active !== false})`;
       }
-      const body = JSON.parse(await getRawBody(req));
-      const db = loadDb();
-      if (!db.drivers) db.drivers = [];
-      const idx = db.drivers.findIndex(d => d.id === body.id);
-      if (idx !== -1) db.drivers[idx] = body;
-      else db.drivers.push({ ...body, id: Date.now() });
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      return Response.json({ success: true });
     }
 
     // DELETE /api/drivers/:id (protected)
     if (path.match(/^\/drivers\/\d+$/) && req.method === 'DELETE') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const id = parseInt(path.split('/')[2]);
-      const db = loadDb();
-      db.drivers = (db.drivers || []).filter(d => d.id !== id);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      await sql`DELETE FROM drivers WHERE id = ${id}`;
+      return Response.json({ success: true });
     }
 
-    // GET/POST /api/promo-codes (protected for POST)
+    // GET/POST /api/promo-codes
     if (path === '/promo-codes') {
-      const db = loadDb();
       if (req.method === 'GET') {
-        res.json(db.promoCodes || []);
-        return;
+        const { rows } = await sql`SELECT * FROM promo_codes ORDER BY code`;
+        return Response.json(rows);
       }
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const body = JSON.parse(await getRawBody(req));
-      if (!db.promoCodes) db.promoCodes = [];
-      const idx = db.promoCodes.findIndex(c => c.code === body.code);
-      if (idx !== -1) db.promoCodes[idx] = body;
-      else db.promoCodes.push(body);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const body = await req.json();
+      const { code, discount, minOrder, active } = body;
+      await sql`INSERT INTO promo_codes (code, discount, min_order, active) VALUES (${code}, ${discount}, ${minOrder || 0}, ${active !== false})
+        ON CONFLICT (code) DO UPDATE SET discount = ${discount}, min_order = ${minOrder || 0}, active = ${active !== false}`;
+      return Response.json({ success: true });
     }
 
     // DELETE /api/promo-codes/:code (protected)
     if (path.match(/^\/promo-codes\/.+$/) && req.method === 'DELETE') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const code = path.split('/')[2];
-      const db = loadDb();
-      db.promoCodes = (db.promoCodes || []).filter(c => c.code !== code);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      await sql`DELETE FROM promo_codes WHERE code = ${code}`;
+      return Response.json({ success: true });
     }
 
-    // GET/POST /api/notices (protected for POST)
+    // GET/POST /api/notices
     if (path === '/notices') {
-      const db = loadDb();
       if (req.method === 'GET') {
-        res.json(db.notices || { text: '', active: false });
-        return;
+        const { rows } = await sql`SELECT * FROM notices WHERE id = 1`;
+        return Response.json(rows[0] || { text: '', active: false });
       }
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      db.notices = JSON.parse(await getRawBody(req));
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const body = await req.json();
+      await sql`UPDATE notices SET text = ${body.text || ''}, active = ${body.active || false} WHERE id = 1`;
+      return Response.json({ success: true });
     }
 
-    // GET/POST /api/delivery-zones (protected for POST)
+    // GET/POST /api/delivery-zones
     if (path === '/delivery-zones') {
-      const db = loadDb();
       if (req.method === 'GET') {
-        res.json(db.deliveryZones || []);
-        return;
+        const { rows } = await sql`SELECT * FROM delivery_zones ORDER BY name`;
+        return Response.json(rows.map(r => ({ name: r.name, fee: r.fee, minOrder: r.min_order })));
       }
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const body = JSON.parse(await getRawBody(req));
-      if (!db.deliveryZones) db.deliveryZones = [];
-      const idx = db.deliveryZones.findIndex(z => z.name === body.name);
-      if (idx !== -1) db.deliveryZones[idx] = body;
-      else db.deliveryZones.push(body);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const body = await req.json();
+      await sql`INSERT INTO delivery_zones (name, fee, min_order) VALUES (${body.name}, ${body.fee || 0}, ${body.minOrder || 0})
+        ON CONFLICT (name) DO UPDATE SET fee = ${body.fee || 0}, min_order = ${body.minOrder || 0}`;
+      return Response.json({ success: true });
     }
 
     // DELETE /api/delivery-zones/:name (protected)
     if (path.match(/^\/delivery-zones\/.+$/) && req.method === 'DELETE') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const name = decodeURIComponent(path.split('/')[2]);
-      const db = loadDb();
-      db.deliveryZones = (db.deliveryZones || []).filter(z => z.name !== name);
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      await sql`DELETE FROM delivery_zones WHERE name = ${name}`;
+      return Response.json({ success: true });
     }
 
     // GET /api/customers (protected)
     if (path === '/customers' && req.method === 'GET') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const db = loadDb();
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const { rows: orders } = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
       const customers = {};
-      (db.orders || []).forEach(order => {
-        if (order.customer && order.customer.phone) {
-          const phone = order.customer.phone;
+      for (const order of orders) {
+        const customer = typeof order.customer === 'string' ? JSON.parse(order.customer) : order.customer;
+        if (customer && customer.phone) {
+          const phone = customer.phone;
           if (!customers[phone]) {
-            customers[phone] = { name: order.customer.name, phone, totalSpent: 0, orderCount: 0, lastOrder: null, loyaltyPoints: 0 };
+            customers[phone] = { name: customer.name, phone, totalSpent: 0, orderCount: 0, lastOrder: null, loyaltyPoints: 0 };
           }
           if (order.status === 'completed') {
             customers[phone].totalSpent += order.total;
@@ -388,45 +282,35 @@ async function handler(req, res) {
             customers[phone].lastOrder = order.timestamp;
           }
         }
-      });
-      res.json(Object.values(customers));
-      return;
+      }
+      return Response.json(Object.values(customers));
     }
 
     // GET /api/settings
     if (path === '/settings' && req.method === 'GET') {
-      const db = loadDb();
-      res.json(db.settings || {});
-      return;
+      const { rows } = await sql`SELECT value FROM settings WHERE key = 'general'`;
+      return Response.json(rows[0] ? rows[0].value : {});
     }
 
     // POST /api/settings (protected)
     if (path === '/settings' && req.method === 'POST') {
-      if (!admin) {
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const db = loadDb();
-      db.settings = { ...(db.settings || {}), ...JSON.parse(await getRawBody(req)) };
-      saveDb(db);
-      res.json({ success: true });
-      return;
+      if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const body = await req.json();
+      await sql`INSERT INTO settings (key, value) VALUES ('general', ${JSON.stringify(body)})
+        ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(body)}`;
+      return Response.json({ success: true });
     }
 
     // Health check
     if (path === '/health' && req.method === 'GET') {
-      res.json({ status: 'ok', time: new Date().toISOString() });
-      return;
+      return Response.json({ status: 'ok', time: new Date().toISOString() });
     }
 
     // 404
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: 'Not Found' }));
+    return Response.json({ error: 'Not Found' }, { status: 404 });
   } catch (err) {
     console.error('[API ERROR]', err.message);
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: 'Server Error' }));
+    return Response.json({ error: 'Server Error' }, { status: 500 });
   }
 }
 
