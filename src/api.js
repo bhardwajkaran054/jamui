@@ -1,10 +1,10 @@
 import { fetchDb, updateDb } from './services/githubService';
 
 /**
- * Switch between 'github-backend' and 'local-node-backend'
+ * Switch between 'vercel-backend', 'github-backend', and 'local-node-backend'
  */
-export const BACKEND_MODE = 'github-backend'; // Use 'local-node-backend' for local testing
-export const API_URL = BACKEND_MODE === 'github-backend' ? 'github-backend' : '/api';
+export const BACKEND_MODE = 'vercel-backend'; // Use 'local-node-backend' for local testing
+export const API_URL = BACKEND_MODE === 'vercel-backend' ? '' : BACKEND_MODE === 'github-backend' ? 'github-backend' : '/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
   // 1. Local Node.js Backend Implementation
@@ -26,7 +26,26 @@ export const apiFetch = async (endpoint, options = {}) => {
     return response.json();
   }
 
-  // 2. GitHub Repository Backend Implementation
+  // 2. Vercel Backend Implementation
+  if (BACKEND_MODE === 'vercel-backend') {
+    const url = `/api${endpoint}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // 3. GitHub Repository Backend Implementation
   const db = await fetchDb();
 
   if (endpoint === '/products' && !options.method) {
