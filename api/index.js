@@ -5,7 +5,11 @@ import bcrypt from 'bcryptjs';
 const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
 
 // Ensure DB is initialized on cold start
-await initDb();
+try {
+  await initDb();
+} catch (err) {
+  console.error('[DB] Init failed:', err.message);
+}
 
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,15 +26,15 @@ async function handler(req, res) {
   try {
     // GET /api/products
     if (path === '/products' && req.method === 'GET') {
-      const { rows } = await sql`SELECT * FROM products ORDER BY id`;
-      const settingsResult = await sql`SELECT value FROM settings WHERE key = 'general'`;
-      const settings = settingsResult.rows[0] ? settingsResult.rows[0].value : {};
+      const rows = await sql`SELECT * FROM products ORDER BY id`;
+      const settingsRows = await sql`SELECT value FROM settings WHERE key = 'general'`;
+      const settings = settingsRows[0]?.value || {};
       return Response.json({ products: rows, settings });
     }
 
     // GET /api/categories
     if (path === '/categories' && req.method === 'GET') {
-      const { rows } = await sql`SELECT DISTINCT category FROM products ORDER BY category`;
+      const rows = await sql`SELECT DISTINCT category FROM products ORDER BY category`;
       return Response.json(['All', ...rows.map(r => r.category)]);
     }
 
@@ -38,7 +42,7 @@ async function handler(req, res) {
     if (path === '/login' && req.method === 'POST') {
       const body = await req.json();
       const { username, password } = body;
-      const { rows } = await sql`SELECT * FROM admins WHERE username = ${username}`;
+      const rows = await sql`SELECT * FROM admins WHERE username = ${username}`;
       const admin = rows[0];
       if (!admin || !bcrypt.compareSync(password, admin.password)) {
         return Response.json({ error: 'Invalid credentials' }, { status: 401 });
@@ -65,7 +69,7 @@ async function handler(req, res) {
       const { id, name, price, unit, category, emoji, stock } = body;
 
       if (id) {
-        const { rows: existing } = await sql`SELECT stock FROM products WHERE id = ${id}`;
+        const existing = await sql`SELECT stock FROM products WHERE id = ${id}`;
         if (existing.length > 0) {
           const oldStock = existing[0].stock || 0;
           if (oldStock !== stock) {
@@ -75,16 +79,12 @@ async function handler(req, res) {
           await sql`UPDATE products SET name = ${name}, price = ${price}, unit = ${unit}, category = ${category}, emoji = ${emoji}, stock = ${stock} WHERE id = ${id}`;
         }
       } else {
-        const { rows: maxRow } = await sql`SELECT MAX(id) as max_id FROM products`;
-        const newId = (maxRow[0].max_id || 0) + 1;
+        const maxRows = await sql`SELECT MAX(id) as max_id FROM products`;
+        const newId = (maxRows[0]?.max_id || 0) + 1;
         await sql`INSERT INTO products (id, name, price, unit, category, emoji, stock) VALUES (${newId}, ${name}, ${price}, ${unit}, ${category}, ${emoji}, ${stock})`;
         await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
           VALUES (${newId}, ${name}, ${0}, ${stock}, ${'New Product Added'}, CURRENT_TIMESTAMP)`;
       }
-
-      // Auto-add category
-      const { rows: catRows } = await sql`SELECT DISTINCT category FROM products WHERE category = ${category}`;
-      // Categories are derived, no need to insert
 
       return Response.json({ success: true });
     }
@@ -93,10 +93,10 @@ async function handler(req, res) {
     if (path.match(/^\/products\/\d+$/) && req.method === 'DELETE') {
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const id = parseInt(path.split('/')[2]);
-      const { rows: product } = await sql`SELECT * FROM products WHERE id = ${id}`;
-      if (product.length > 0) {
+      const productRows = await sql`SELECT * FROM products WHERE id = ${id}`;
+      if (productRows.length > 0) {
         await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
-          VALUES (${id}, ${product[0].name}, ${product[0].stock || 0}, ${0}, ${'Product Deleted'}, CURRENT_TIMESTAMP)`;
+          VALUES (${id}, ${productRows[0].name}, ${productRows[0].stock || 0}, ${0}, ${'Product Deleted'}, CURRENT_TIMESTAMP)`;
       }
       await sql`DELETE FROM products WHERE id = ${id}`;
       return Response.json({ success: true });
@@ -115,7 +115,7 @@ async function handler(req, res) {
     // GET /api/orders (protected)
     if (path === '/orders' && req.method === 'GET') {
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      const { rows } = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
+      const rows = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
       return Response.json(rows.map(row => ({
         ...row,
         items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
@@ -130,12 +130,12 @@ async function handler(req, res) {
       const body = await req.json();
       const { status, deliveryMessage, rejectionReason, deliveryHours, driver, cancelReason } = body;
 
-      const { rows: orderRows } = await sql`SELECT * FROM orders WHERE id = ${id}`;
+      const orderRows = await sql`SELECT * FROM orders WHERE id = ${id}`;
       const order = orderRows[0];
       if (order && status === 'completed' && order.status !== 'completed') {
         const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
         for (const item of items) {
-          const { rows: productRows } = await sql`SELECT stock FROM products WHERE id = ${item.id}`;
+          const productRows = await sql`SELECT stock FROM products WHERE id = ${item.id}`;
           if (productRows.length > 0) {
             const oldStock = productRows[0].stock || 0;
             const newStock = Math.max(0, oldStock - item.quantity);
@@ -157,7 +157,8 @@ async function handler(req, res) {
 
       if (updates.length > 0) {
         const setClause = updates.map((u, i) => `${u} = $${i + 1}`).join(', ');
-        await sql.query(`UPDATE orders SET ${setClause} WHERE id = $${vals.length + 1}`, [...vals, id]);
+        vals.push(id);
+        await sql.query(`UPDATE orders SET ${setClause} WHERE id = $${vals.length}`, vals);
       }
 
       return Response.json({ success: true });
@@ -174,14 +175,14 @@ async function handler(req, res) {
     // GET /api/stock-logs (protected)
     if (path === '/stock-logs' && req.method === 'GET') {
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      const { rows } = await sql`SELECT * FROM stock_logs ORDER BY timestamp DESC LIMIT 100`;
+      const rows = await sql`SELECT * FROM stock_logs ORDER BY timestamp DESC LIMIT 100`;
       return Response.json(rows);
     }
 
     // GET /api/drivers (protected)
     if (path === '/drivers' && req.method === 'GET') {
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      const { rows } = await sql`SELECT * FROM drivers WHERE active = true ORDER BY name`;
+      const rows = await sql`SELECT * FROM drivers WHERE active = true ORDER BY name`;
       return Response.json(rows);
     }
 
@@ -209,7 +210,7 @@ async function handler(req, res) {
     // GET/POST /api/promo-codes
     if (path === '/promo-codes') {
       if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM promo_codes ORDER BY code`;
+        const rows = await sql`SELECT * FROM promo_codes ORDER BY code`;
         return Response.json(rows);
       }
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -231,7 +232,7 @@ async function handler(req, res) {
     // GET/POST /api/notices
     if (path === '/notices') {
       if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM notices WHERE id = 1`;
+        const rows = await sql`SELECT * FROM notices WHERE id = 1`;
         return Response.json(rows[0] || { text: '', active: false });
       }
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -243,7 +244,7 @@ async function handler(req, res) {
     // GET/POST /api/delivery-zones
     if (path === '/delivery-zones') {
       if (req.method === 'GET') {
-        const { rows } = await sql`SELECT * FROM delivery_zones ORDER BY name`;
+        const rows = await sql`SELECT * FROM delivery_zones ORDER BY name`;
         return Response.json(rows.map(r => ({ name: r.name, fee: r.fee, minOrder: r.min_order })));
       }
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -264,7 +265,7 @@ async function handler(req, res) {
     // GET /api/customers (protected)
     if (path === '/customers' && req.method === 'GET') {
       if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      const { rows: orders } = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
+      const orders = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
       const customers = {};
       for (const order of orders) {
         const customer = typeof order.customer === 'string' ? JSON.parse(order.customer) : order.customer;
@@ -288,8 +289,8 @@ async function handler(req, res) {
 
     // GET /api/settings
     if (path === '/settings' && req.method === 'GET') {
-      const { rows } = await sql`SELECT value FROM settings WHERE key = 'general'`;
-      return Response.json(rows[0] ? rows[0].value : {});
+      const rows = await sql`SELECT value FROM settings WHERE key = 'general'`;
+      return Response.json(rows[0]?.value || {});
     }
 
     // POST /api/settings (protected)

@@ -1,4 +1,12 @@
-import { sql } from '@vercel/postgres';
+import { neon, neonConfig } from '@neondatabase/serverless';
+
+// Configure neon for serverless environment
+neonConfig.fetchEndpoint = () => {
+  // Use the Pooled connection endpoint for serverless
+  return process.env.POOL_ENDPOINT || process.env.DATABASE_URL?.replace('sslmode=require', 'ssl_mode=require').split('?')[0] + '?ssl_mode=require';
+};
+
+const sql = neon(process.env.DATABASE_URL || '');
 import bcrypt from 'bcryptjs';
 
 let initialized = false;
@@ -129,16 +137,16 @@ export async function initDb() {
     `;
 
     // Seed initial products if empty
-    const { rows: existingProducts } = await sql`SELECT COUNT(*) as count FROM products`;
-    if (parseInt(existingProducts[0].count) === 0) {
+    const productsResult = await sql`SELECT COUNT(*) as count FROM products`;
+    if (parseInt(productsResult[0].count) === 0) {
       for (const p of INITIAL_PRODUCTS) {
         await sql`INSERT INTO products (id, name, price, unit, category, emoji, stock) VALUES (${p.id}, ${p.name}, ${p.price}, ${p.unit}, ${p.category}, ${p.emoji}, ${p.stock})`;
       }
     }
 
     // Seed default admin if none exists
-    const { rows: existingAdmins } = await sql`SELECT COUNT(*) as count FROM admins`;
-    if (parseInt(existingAdmins[0].count) === 0) {
+    const adminsResult = await sql`SELECT COUNT(*) as count FROM admins`;
+    if (parseInt(adminsResult[0].count) === 0) {
       const hash = bcrypt.hashSync('TjBraWE=', 10);
       await sql`INSERT INTO admins (username, password) VALUES (${'kbcode'}, ${hash})`;
     }
