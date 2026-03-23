@@ -28,8 +28,4 @@
   "env": {
     "DATABASE_URL": "@database-url",
     "JWT_SECRET": "@jwt-secret"
-  },
-  "security": {
-    "automaticVercelAuth": false
-  }
-}
+  }}
