@@ -138,6 +138,32 @@ export default async function handler(req, res) {
       return;
     }
 
+    // GET /api/track/:id - public order lookup
+    if (path.match(/^\/track\/\d+$/) && req.method === 'GET') {
+      const orderId = parseInt(path.split('/')[2]);
+      const rows = await sql`SELECT * FROM orders WHERE id = ${orderId}`;
+      if (rows.length === 0) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Order not found' }));
+        return;
+      }
+      const order = rows[0];
+      res.json({
+        id: order.id,
+        status: order.status,
+        timestamp: order.timestamp,
+        total: order.total,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+        customer: typeof order.customer === 'string' ? JSON.parse(order.customer) : order.customer,
+        deliveryMessage: order.delivery_message,
+        deliveryHours: order.delivery_hours,
+        approvalTimestamp: order.approval_timestamp,
+        driver: order.driver,
+        rejectionReason: order.rejection_reason
+      });
+      return;
+    }
+
     // GET /api/orders (protected)
     if (path === '/orders' && req.method === 'GET') {
       if (!admin) {
