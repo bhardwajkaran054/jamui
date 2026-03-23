@@ -11,6 +11,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "./**/*.js"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules"]
 }

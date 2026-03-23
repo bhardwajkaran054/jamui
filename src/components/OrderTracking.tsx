@@ -22,10 +22,10 @@ export default function OrderTracking({ initialOrderId, onClose }: OrderTracking
     if (!order || order.status !== 'completed' || !order.approvalTimestamp || !order.deliveryHours) return
 
     const updateTimer = () => {
-      const approvalDate = new Date(order.approvalTimestamp)
-      const deliveryDate = new Date(approvalDate.getTime() + order.deliveryHours * 60 * 60 * 1000)
+      const approvalDate = new Date(order.approvalTimestamp!)
+      const deliveryDate = new Date(approvalDate.getTime() + order.deliveryHours! * 60 * 60 * 1000)
       const now = new Date()
-      const diff = deliveryDate - now
+      const diff = deliveryDate.getTime() - now.getTime()
 
       if (diff > 0) {
         const h = Math.floor(diff / (1000 * 60 * 60))

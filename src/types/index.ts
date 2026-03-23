@@ -23,6 +23,7 @@ export interface CartItem {
   quantity: number;
   emoji: string;
   category: string;
+  image?: string;
 }
 
 // Cart is a map of productId -> quantity
@@ -45,6 +46,7 @@ export interface Driver {
   phone: string;
   vehicle?: string;
   active: boolean;
+  status?: string;
 }
 
 // Order Status
@@ -77,6 +79,7 @@ export interface PromoCode {
   code: string;
   discount: number;
   min_order: number;
+  minOrder?: number;
   active: boolean;
 }
 
@@ -122,11 +125,9 @@ export type AdminActionType =
   | 'add'
   | 'save';
 
-export interface AdminActionData {
-  id?: number;
-  status?: OrderStatus;
-  [key: string]: unknown;
-}
+// AdminActionData - flexible type for admin actions with various data shapes
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AdminActionData = any;
 
 // JWT Payload
 export interface JWTPayload {
@@ -251,7 +252,7 @@ export interface ProductEditModalProps {
 export interface AdminDashboardProps {
   token: string;
   onLogout: () => void;
-  onAdminAction: (action: AdminActionType, data: AdminActionData) => void;
+  onAdminAction: (action: AdminActionType, data?: AdminActionData) => void;
   products: Product[];
   categories: string[];
   orders: Order[];

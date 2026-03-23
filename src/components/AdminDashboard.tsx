@@ -98,7 +98,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchSettings = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/settings')
+      const data = await apiFetch<SettingsType>('/settings')
       setSettings(data)
     } catch (err) {
       console.error('Failed to fetch settings:', err)
@@ -140,7 +140,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchDrivers = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/drivers')
+      const data = await apiFetch<Driver[]>('/drivers')
       setDrivers(data)
     } catch (err) {
       console.error('Failed to fetch drivers:', err)
@@ -203,7 +203,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchCustomers = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/customers')
+      const data = await apiFetch<Customer[]>('/customers')
       setCustomers(data)
     } catch (err) {
       console.error('Failed to fetch customers:', err)
@@ -215,7 +215,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchPromoCodes = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/promo-codes')
+      const data = await apiFetch<PromoCode[]>('/promo-codes')
       setPromoCodes(data)
     } catch (err) {
       console.error('Failed to fetch promo codes:', err)
@@ -227,7 +227,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchStockLogs = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/stock-logs')
+      const data = await apiFetch<StockLog[]>('/stock-logs')
       setStockLogs(data)
     } catch (err) {
       console.error('Failed to fetch stock logs:', err)
@@ -239,7 +239,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchNotices = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/notices')
+      const data = await apiFetch<Notice>('/notices')
       setNotices(data)
     } catch (err) {
       console.error('Failed to fetch notices:', err)
@@ -251,7 +251,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchDeliveryZones = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/delivery-zones')
+      const data = await apiFetch<DeliveryZone[]>('/delivery-zones')
       setDeliveryZones(data)
     } catch (err) {
       console.error('Failed to fetch delivery zones:', err)
@@ -324,7 +324,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
   const fetchOrders = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/orders', {
+      const data = await apiFetch<Order[]>('/orders', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       setOrders(data)
@@ -602,7 +602,7 @@ export default function AdminDashboard({ token, onLogout, onAdminAction, product
             >
               <tab.icon className="w-5 h-5" />
               <span className="flex-1 text-left">{tab.label}</span>
-              {tab.count > 0 && (
+              {(tab.count ?? 0) > 0 && (
                 <span className={`bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full ${tab.id === 'alerts' ? 'animate-pulse' : ''}`}>
                   {tab.count}
                 </span>

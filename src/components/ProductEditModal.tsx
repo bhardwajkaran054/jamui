@@ -8,7 +8,7 @@ interface FormData {
   unit: string
   category: string
   emoji: string
-  image: string
+  image?: string
   useImage: boolean
   stock: number
 }

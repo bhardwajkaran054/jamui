@@ -1,20 +1,18 @@
-import { neon, NeonQueryFunction } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 
-let _sql: NeonQueryFunction | null = null;
+// Use any to avoid complex Neon TypeScript generics
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SqlFunction = (...args: any[]) => any;
+let _sql: SqlFunction | null = null;
 
-function getSql(): NeonQueryFunction {
+function getSql(): SqlFunction {
   if (!_sql) {
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
-    try {
-      new URL(url);
-      _sql = neon(url);
-    } catch {
-      _sql = neon(url);
-    }
+    _sql = neon(url);
   }
   return _sql;
 }
@@ -42,10 +40,10 @@ const INITIAL_PRODUCTS = [
 export async function initDb(): Promise<void> {
   if (initialized) return;
 
-  const sql = getSql();
+  const db = getSql();
 
   try {
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -57,7 +55,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS orders (
         id BIGINT PRIMARY KEY,
         items JSON NOT NULL,
@@ -76,7 +74,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS admins (
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
@@ -84,7 +82,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS stock_logs (
         id SERIAL PRIMARY KEY,
         product_id INTEGER,
@@ -96,7 +94,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS drivers (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -106,7 +104,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS promo_codes (
         code TEXT PRIMARY KEY,
         discount INTEGER NOT NULL,
@@ -115,7 +113,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS notices (
         id INTEGER PRIMARY KEY DEFAULT 1,
         text TEXT DEFAULT '',
@@ -123,7 +121,7 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS delivery_zones (
         id SERIAL PRIMARY KEY,
         name TEXT UNIQUE NOT NULL,
@@ -132,27 +130,27 @@ export async function initDb(): Promise<void> {
       )
     `;
 
-    await sql`
+    await db`
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value JSON NOT NULL
       )
     `;
 
-    const productsResult = await sql`SELECT COUNT(*) as count FROM products`;
-    if (parseInt(String(productsResult[0].count)) === 0) {
+    const productsResult = await db`SELECT COUNT(*) as count FROM products`;
+    if (parseInt(String(productsResult[0]?.count)) === 0) {
       for (const p of INITIAL_PRODUCTS) {
-        await sql`INSERT INTO products (id, name, price, unit, category, emoji, stock) VALUES (${p.id}, ${p.name}, ${p.price}, ${p.unit}, ${p.category}, ${p.emoji}, ${p.stock})`;
+        await db`INSERT INTO products (id, name, price, unit, category, emoji, stock) VALUES (${p.id}, ${p.name}, ${p.price}, ${p.unit}, ${p.category}, ${p.emoji}, ${p.stock})`;
       }
     }
 
-    const adminsResult = await sql`SELECT COUNT(*) as count FROM admins`;
-    if (parseInt(String(adminsResult[0].count)) === 0) {
+    const adminsResult = await db`SELECT COUNT(*) as count FROM admins`;
+    if (parseInt(String(adminsResult[0]?.count)) === 0) {
       const hash = bcrypt.hashSync('TjBraWE=', 10);
-      await sql`INSERT INTO admins (username, password) VALUES (${'kbcode'}, ${hash})`;
+      await db`INSERT INTO admins (username, password) VALUES (${'kbcode'}, ${hash})`;
     }
 
-    await sql`INSERT INTO notices (id, text, active) VALUES (1, '', false) ON CONFLICT (id) DO NOTHING`;
+    await db`INSERT INTO notices (id, text, active) VALUES (1, '', false) ON CONFLICT (id) DO NOTHING`;
 
     initialized = true;
     console.log('[DB] Initialized successfully');
@@ -162,4 +160,6 @@ export async function initDb(): Promise<void> {
   }
 }
 
-export { getSql as sql };
+// Export sql cast as any to avoid complex Neon type generics
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const sql: SqlFunction = ((...args: any[]) => getSql()(...args));

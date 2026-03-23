@@ -37,15 +37,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (path === '/products' && req.method === 'GET') {
       const rows = await sql`SELECT * FROM products ORDER BY id`;
       const settingsRows = await sql`SELECT value FROM settings WHERE key = 'general'`;
-      const settings = (settingsRows[0] as { value?: Record<string, unknown> } | undefined)?.value || {};
+      const settings = settingsRows[0]?.value || {};
       res.json({ products: rows, settings });
       return;
     }
 
     // GET /api/categories
     if (path === '/categories' && req.method === 'GET') {
-      const rows = await sql`SELECT DISTINCT category FROM products ORDER BY category` as { category: string }[];
-      res.json(['All', ...rows.map(r => r.category)]);
+      const rows = await sql`SELECT DISTINCT category FROM products ORDER BY category`;
+      res.json(['All', ...rows.map((r: { category: string }) => r.category)]);
       return;
     }
 
@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (path === '/login' && req.method === 'POST') {
       const body = await getBody();
       const { username, password } = body as { username?: string; password?: string };
-      const rows = await sql`SELECT * FROM admins WHERE username = ${username}` as { id: number; username: string; password: string }[];
+      const rows = await sql`SELECT * FROM admins WHERE username = ${username}`;
       const admin = rows[0];
       if (!admin || !bcrypt.compareSync(password || '', admin.password)) {
         res.writeHead(401);
@@ -90,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       };
 
       if (id) {
-        const existing = await sql`SELECT stock FROM products WHERE id = ${id}` as { stock: number }[];
+        const existing = await sql`SELECT stock FROM products WHERE id = ${id}`;
         if (existing.length > 0) {
           const oldStock = existing[0].stock || 0;
           if (oldStock !== stock) {
@@ -100,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           await sql`UPDATE products SET name = ${name}, price = ${price}, unit = ${unit}, category = ${category}, emoji = ${emoji}, stock = ${stock} WHERE id = ${id}`;
         }
       } else {
-        const maxRows = await sql`SELECT MAX(id) as max_id FROM products` as { max_id: number | null }[];
+        const maxRows = await sql`SELECT MAX(id) as max_id FROM products`;
         const newId = (maxRows[0]?.max_id || 0) + 1;
         await sql`INSERT INTO products (id, name, price, unit, category, emoji, stock) VALUES (${newId}, ${name}, ${price}, ${unit}, ${category}, ${emoji}, ${stock})`;
         await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
@@ -119,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return;
       }
       const id = parseInt(path.split('/')[2]);
-      const productRows = await sql`SELECT * FROM products WHERE id = ${id}` as { name: string; stock: number }[];
+      const productRows = await sql`SELECT * FROM products WHERE id = ${id}`;
       if (productRows.length > 0) {
         await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
           VALUES (${id}, ${productRows[0].name}, ${productRows[0].stock || 0}, ${0}, ${'Product Deleted'}, CURRENT_TIMESTAMP)`;
@@ -151,14 +151,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         res.end(JSON.stringify({ error: 'Order not found' }));
         return;
       }
-      const order = rows[0] as Record<string, unknown>;
+      const order = rows[0];
       res.json({
         id: order.id,
         status: order.status,
         timestamp: order.timestamp,
         total: order.total,
         items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
-        customer: typeof order.customer === 'string' ? JSON.parse(order.customer as string) : order.customer,
+        customer: typeof order.customer === 'string' ? JSON.parse(order.customer) : order.customer,
         deliveryMessage: order.delivery_message,
         deliveryHours: order.delivery_hours,
         approvalTimestamp: order.approval_timestamp,
@@ -179,7 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       res.json(rows.map((row: Record<string, unknown>) => ({
         ...row,
         items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
-        customer: typeof row.customer === 'string' ? JSON.parse(row.customer as string) : row.customer,
+        customer: typeof row.customer === 'string' ? JSON.parse(row.customer) : row.customer,
       })));
       return;
     }
@@ -197,12 +197,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         status?: string; deliveryMessage?: string; rejectionReason?: string; deliveryHours?: number; driver?: { id: number; name: string; phone: string }; cancelReason?: string
       };
 
-      const orderRows = await sql`SELECT * FROM orders WHERE id = ${id}` as Record<string, unknown>[];
+      const orderRows = await sql`SELECT * FROM orders WHERE id = ${id}`;
       const order = orderRows[0];
       if (order && status === 'completed' && order.status !== 'completed') {
-        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items as { id: number; name: string; quantity: number }[];
-        for (const item of items) {
-          const productRows = await sql`SELECT stock FROM products WHERE id = ${item.id}` as { stock: number }[];
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        for (const item of items as { id: number; name: string; quantity: number }[]) {
+          const productRows = await sql`SELECT stock FROM products WHERE id = ${item.id}`;
           if (productRows.length > 0) {
             const oldStock = productRows[0].stock || 0;
             const newStock = Math.max(0, oldStock - item.quantity);
@@ -214,18 +214,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
 
       const updates: string[] = [];
-      const vals: (string | number | boolean | null)[] = [];
+      const vals: (string | number | null)[] = [];
       if (status) { updates.push('status'); vals.push(status); }
       if (deliveryMessage) { updates.push('delivery_message'); vals.push(deliveryMessage); }
       if (rejectionReason) { updates.push('rejection_reason'); vals.push(rejectionReason); }
-      if (deliveryHours) { updates.push('delivery_hours'); updates.push('approval_timestamp'); vals.push(parseInt(String(deliveryHours)), new Date().toISOString()); }
+      if (deliveryHours) { updates.push('delivery_hours'); updates.push('approval_timestamp'); vals.push(deliveryHours, new Date().toISOString()); }
       if (driver) { updates.push('driver'); vals.push(JSON.stringify(driver)); }
       if (cancelReason) { updates.push('cancel_reason'); vals.push(cancelReason); }
 
       if (updates.length > 0) {
-        const setClause = updates.map((u, i) => `${u} = $${i + 1}`).join(', ');
-        vals.push(id);
-        await sql.query(`UPDATE orders SET ${setClause} WHERE id = $${vals.length}`, vals);
+        const setClauses = updates.map((u, i) => `${u} = $${i + 1}`).join(', ');
+        const query = `UPDATE orders SET ${setClauses}, timestamp = CURRENT_TIMESTAMP WHERE id = $${vals.length + 1}`;
+        await sql([query, ...vals, id]);
       }
 
       res.json({ success: true });
@@ -358,8 +358,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // GET/POST /api/delivery-zones
     if (path === '/delivery-zones') {
       if (req.method === 'GET') {
-        const rows = await sql`SELECT * FROM delivery_zones ORDER BY name` as { name: string; fee: number; min_order: number }[];
-        res.json(rows.map(r => ({ name: r.name, fee: r.fee, minOrder: r.min_order })));
+        const rows = await sql`SELECT * FROM delivery_zones ORDER BY name`;
+        res.json(rows.map((r: { name: string; fee: number; min_order: number }) => ({ name: r.name, fee: r.fee, minOrder: r.min_order })));
         return;
       }
       if (!admin) {
@@ -394,22 +394,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
       }
-      const orders = await sql`SELECT * FROM orders ORDER BY timestamp DESC` as Record<string, unknown>[];
+      const orders = await sql`SELECT * FROM orders ORDER BY timestamp DESC`;
       const customers: Record<string, { name: string; phone: string; totalSpent: number; orderCount: number; lastOrder: string | null; loyaltyPoints: number }> = {};
       for (const order of orders) {
-        const customer = typeof order.customer === 'string' ? JSON.parse(order.customer as string) : order.customer as { name?: string; phone?: string } | null;
+        const customer = typeof order.customer === 'string' ? JSON.parse(order.customer) : order.customer;
         if (customer && customer.phone) {
           const phone = customer.phone;
           if (!customers[phone]) {
             customers[phone] = { name: customer.name || '', phone, totalSpent: 0, orderCount: 0, lastOrder: null, loyaltyPoints: 0 };
           }
           if (order.status === 'completed') {
-            customers[phone].totalSpent += order.total as number;
-            customers[phone].loyaltyPoints += Math.floor((order.total as number) / 100);
+            customers[phone].totalSpent += order.total;
+            customers[phone].loyaltyPoints += Math.floor(order.total / 100);
           }
           customers[phone].orderCount += 1;
-          if (!customers[phone].lastOrder || new Date(order.timestamp as string) > new Date(customers[phone].lastOrder)) {
-            customers[phone].lastOrder = order.timestamp as string;
+          if (!customers[phone].lastOrder || new Date(order.timestamp) > new Date(customers[phone].lastOrder)) {
+            customers[phone].lastOrder = order.timestamp;
           }
         }
       }
@@ -419,7 +419,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     // GET /api/settings
     if (path === '/settings' && req.method === 'GET') {
-      const rows = await sql`SELECT value FROM settings WHERE key = 'general'` as { value: Record<string, unknown> }[];
+      const rows = await sql`SELECT value FROM settings WHERE key = 'general'`;
       res.json(rows[0]?.value || {});
       return;
     }
@@ -441,11 +441,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // Debug endpoint - remove in production
     if (path === '/debug' && req.method === 'GET') {
       try {
-        const admins = await sql`SELECT id, username FROM admins` as { id: number; username: string }[];
-        const products = await sql`SELECT COUNT(*) as count FROM products` as { count: number }[];
+        const admins = await sql`SELECT id, username FROM admins`;
+        const products = await sql`SELECT COUNT(*) as count FROM products`;
         res.json({
           dbStatus: 'connected',
-          admins: admins,
+          admins,
           productCount: products[0]?.count,
           jwtSecret: JWT_SECRET.substring(0, 4) + '...'
         });

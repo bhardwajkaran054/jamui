@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ShoppingBag, Tag, Truck, CheckCircle2, AlertCircle } from 'lucide-react'
-import type { CartProps } from '../types'
+import type { CartProps, CartItem } from '../types'
 import type { PromoCode, DeliveryZone, Product } from '../types'
 
 export default function Cart({ cart, products, promoCodes = [], deliveryZones = [], onAdd, onRemove, onClose, onOrder }: CartProps) {
@@ -14,8 +14,16 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
   const [customerPhone, setCustomerPhone] = useState('')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
-  const cartItems = products.filter((p: Product) => cart[p.id] > 0)
-  const subtotal = cartItems.reduce((sum, p: Product) => sum + p.price * cart[p.id], 0)
+  const cartItems: CartItem[] = products.filter((p: Product) => cart[p.id] > 0).map((p: Product) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    quantity: cart[p.id],
+    emoji: p.emoji,
+    category: p.category,
+    image: p.image
+  }))
+  const subtotal = cartItems.reduce((sum, p) => sum + p.price * p.quantity, 0)
   const discount = appliedPromo ? appliedPromo.discount : 0
   const deliveryFee = selectedZone ? selectedZone.fee : 0
   const total = subtotal - discount + deliveryFee
@@ -70,7 +78,7 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
       msg += `📞 Phone: ${customerPhone}\n\n`
       msg += `*Order Summary:*\n`
       cartItems.forEach(p => {
-        msg += `${p.emoji} ${p.name} x${cart[p.id]} = ₹${p.price * cart[p.id]}\n`
+        msg += `${p.emoji} ${p.name} x${p.quantity} = ₹${p.price * p.quantity}\n`
       })
       msg += `\n--------------------------\n`
       msg += `*Subtotal:* ₹${subtotal}\n`
@@ -125,12 +133,12 @@ export default function Cart({ cart, products, promoCodes = [], deliveryZones = 
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-800 truncate">{p.name}</p>
-                      <p className="text-green-700 font-black">₹{p.price} <span className="text-xs text-gray-400 font-normal ml-1">x {cart[p.id]}</span></p>
+                      <p className="text-green-700 font-black">₹{p.price} <span className="text-xs text-gray-400 font-normal ml-1">x {p.quantity}</span></p>
                     </div>
                     <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
-                      <button onClick={() => onRemove(p)} className="w-8 h-8 bg-white hover:bg-red-50 text-red-600 rounded-lg font-black shadow-sm transition-all">-</button>
-                      <span className="w-6 text-center font-black text-sm text-gray-700">{cart[p.id]}</span>
-                      <button onClick={() => onAdd(p)} className="w-8 h-8 bg-white hover:bg-green-50 text-green-700 rounded-lg font-black shadow-sm transition-all">+</button>
+                      <button onClick={() => onRemove(p as any)} className="w-8 h-8 bg-white hover:bg-red-50 text-red-600 rounded-lg font-black shadow-sm transition-all">-</button>
+                      <span className="w-6 text-center font-black text-sm text-gray-700">{p.quantity}</span>
+                      <button onClick={() => onAdd(p as any)} className="w-8 h-8 bg-white hover:bg-green-50 text-green-700 rounded-lg font-black shadow-sm transition-all">+</button>
                     </div>
                   </div>
                 ))}
