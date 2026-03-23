@@ -53,8 +53,11 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isAdding, setIsAdding] = useState(false)
 
-  // Derived
-  const isPathAdmin = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
+  // Derived - check both hash and pathname for admin detection
+  const isPathAdmin = window.location.hash.includes('/admin') ||
+    window.location.pathname.endsWith('/admin') ||
+    window.location.pathname === '/admin' ||
+    window.location.href.includes('/admin')
 
   // Effects
   useEffect(() => {
@@ -68,7 +71,10 @@ export default function App() {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const isPathAdminNow = window.location.hash.includes('/admin') || window.location.pathname.endsWith('/admin')
+      const isPathAdminNow = window.location.hash.includes('/admin') ||
+      window.location.pathname.endsWith('/admin') ||
+      window.location.pathname === '/admin' ||
+      window.location.href.includes('/admin')
       if (isPathAdminNow) {
         if (!passedSecret) {
           setShowSecret(true)
