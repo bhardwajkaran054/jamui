@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "vercel": {
+    "framework": "vite"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"vite\"",
     "dev:server": "tsx api/local-server.ts",
