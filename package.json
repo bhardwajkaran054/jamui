@@ -10,7 +10,7 @@
     "dev": "concurrently \"npm run dev:server\" \"vite\"",
     "dev:server": "tsx api/local-server.ts",
     "build": "vite build",
-    "build:api": "tsc --project api/tsconfig.build.json",
+    "build:api": "echo 'API files are TypeScript - handled by Vercel'",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:api": "tsc --noEmit --project api/tsconfig.json",
