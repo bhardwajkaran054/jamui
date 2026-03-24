@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "vercel": {
-    "framework": "vite"
+    "regions": ["sin1"]
   },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"vite\"",
