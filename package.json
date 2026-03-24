@@ -52,6 +52,8 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "@types/react": "^18.2.64",
