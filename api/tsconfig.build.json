@@ -9,10 +9,10 @@
     "skipLibCheck": true,
     "allowJs": true,
     "noEmit": false,
-    "outDir": "api",
+    "outDir": ".",
     "declaration": false,
     "types": ["node"]
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "tsconfig.build.json"]
 }
