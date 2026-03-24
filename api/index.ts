@@ -7,10 +7,12 @@ export const dynamic = 'force-dynamic';
 const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
 
 function getSql() {
-  if (!process.env.DATABASE_URL) {
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+  if (!dbUrl) {
+    console.error('[API] No database URL. DATABASE_URL:', !!process.env.DATABASE_URL, 'POSTGRES_URL:', !!process.env.POSTGRES_URL);
     throw new Error('DATABASE_URL not set');
   }
-  return neon(process.env.DATABASE_URL);
+  return neon(dbUrl);
 }
 
 function authenticate(authHeader: string | null) {
