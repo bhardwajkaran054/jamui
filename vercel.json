@@ -2,9 +2,9 @@
   "buildCommand": "npm run build && npm run build:api",
   "outputDirectory": "dist",
   "framework": "vite",
-  "build": {
-    "env": {
-      "NODE_VERSION": "18"
-    }
-  }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
