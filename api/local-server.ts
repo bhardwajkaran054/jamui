@@ -32,7 +32,7 @@ const authMiddleware = (req: express.Request, res: express.Response, next: expre
   }
 };
 
-const getBody = () => new Promise<Record<string, any>>((resolve) => {
+const getBody = (req: express.Request): Promise<Record<string, any>> => new Promise((resolve) => {
   let body = '';
   req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
   req.on('end', () => {
@@ -107,7 +107,7 @@ app.post('/api/products', authMiddleware, async (req, res) => {
 // DELETE /api/products/:id (protected)
 app.delete('/api/products/:id', authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const productRows = await sql`SELECT * FROM products WHERE id = ${id}`;
     if (productRows.length > 0) {
       await sql`INSERT INTO stock_logs (product_id, product_name, old_stock, new_stock, reason, timestamp)
@@ -151,7 +151,7 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
 app.put('/api/orders/:id', authMiddleware, async (req, res) => {
   const { status, deliveryMessage, rejectionReason, deliveryHours, driver, cancelReason } = req.body;
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const orderRows = await sql`SELECT * FROM orders WHERE id = ${id}`;
     const order = orderRows[0];
     if (order && status === 'completed' && order.status !== 'completed') {
@@ -227,7 +227,7 @@ app.post('/api/drivers', authMiddleware, async (req, res) => {
 // DELETE /api/drivers/:id (protected)
 app.delete('/api/drivers/:id', authMiddleware, async (req, res) => {
   try {
-    await sql`DELETE FROM drivers WHERE id = ${parseInt(req.params.id)}`;
+    await sql`DELETE FROM drivers WHERE id = ${parseInt(req.params.id as string)}`;
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -309,7 +309,7 @@ app.post('/api/delivery-zones', authMiddleware, async (req, res) => {
 // DELETE /api/delivery-zones/:name (protected)
 app.delete('/api/delivery-zones/:name', authMiddleware, async (req, res) => {
   try {
-    await sql`DELETE FROM delivery_zones WHERE name = ${decodeURIComponent(req.params.name)}`;
+    await sql`DELETE FROM delivery_zones WHERE name = ${decodeURIComponent(req.params.name as string)}`;
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
