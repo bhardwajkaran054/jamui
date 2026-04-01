@@ -108,6 +108,14 @@ async function initDb() {
       )
     `;
 
+    
+    try { await sql`ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 100`; } catch(e) {}
+    try { await sql`ALTER TABLE products ADD COLUMN image TEXT`; } catch(e) {}
+    await sql`CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY AUTOINCREMENT, public_order_token TEXT)`;
+    await sql`CREATE TABLE IF NOT EXISTS drivers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, status TEXT)`;
+    await sql`CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, loyalty_points INTEGER DEFAULT 0, total_spent REAL DEFAULT 0, order_count INTEGER DEFAULT 0)`;
+    await sql`CREATE TABLE IF NOT EXISTS stock_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, change INTEGER, reason TEXT, created_at TEXT)`;
+
     const existing = await sql`SELECT COUNT(*) as count FROM products`;
     if (parseInt(existing[0].count) === 0) {
       await sql`
@@ -291,6 +299,72 @@ app.post('/api/setup-admin', async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+
+app.post('/api/products', authenticate, async (req, res) => {
+  try {
+    const { id, name, price, unit, category, emoji, stock, image } = req.body;
+    if (id) {
+      await sql`UPDATE products SET name=${name}, price=${price}, unit=${unit}, category=${category}, emoji=${emoji}, stock=${stock || 100}, image=${image || null} WHERE id=${id}`;
+    } else {
+      await sql`INSERT INTO products (name, price, unit, category, emoji, stock, image) VALUES (${name}, ${price}, ${unit}, ${category}, ${emoji}, ${stock || 100}, ${image || null})`;
+    }
+    res.json({success:true});
+  } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.delete('/api/products/:id', authenticate, async (req, res) => {
+  try { await sql`DELETE FROM products WHERE id=${req.params.id}`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.delete('/api/categories/:name', authenticate, async (req, res) => {
+  try { await sql`UPDATE products SET category='Other' WHERE category=${req.params.name}`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.post('/api/categories', authenticate, (req, res) => res.json({success:true}));
+app.post('/api/notices', authenticate, async (req, res) => {
+  try {
+    await sql`UPDATE notices SET active=false`;
+    await sql`INSERT INTO notices (text, active) VALUES (${req.body.text}, true)`;
+    res.json({success:true});
+  } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.post('/api/promo-codes', authenticate, async (req, res) => {
+  try {
+    await sql`INSERT INTO promo_codes (code, discount, type) VALUES (${req.body.code}, ${req.body.discount}, 'percentage')`;
+    res.json({success:true});
+  } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.delete('/api/promo-codes/:code', authenticate, async (req, res) => {
+  try { await sql`DELETE FROM promo_codes WHERE code=${req.params.code}`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.delete('/api/delivery-zones/:name', authenticate, async (req, res) => {
+  try { await sql`DELETE FROM delivery_zones WHERE name=${req.params.name}`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.post('/api/delivery-zones', authenticate, async (req, res) => {
+  try { await sql`INSERT INTO delivery_zones (name, fee) VALUES (${req.body.name}, ${req.body.fee})`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.delete('/api/orders/:id', authenticate, async (req, res) => {
+  try { await sql`DELETE FROM orders WHERE id=${req.params.id}`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.get('/api/settings', async (req, res) => {
+  try { const r = await sql`SELECT * FROM settings ORDER BY id DESC LIMIT 1`; res.json(r[0] || {publicOrderToken:''}); } catch(err) { res.json({publicOrderToken:''}); }
+});
+app.post('/api/settings', authenticate, async (req, res) => {
+  try { await sql`INSERT INTO settings (public_order_token) VALUES (${req.body.publicOrderToken})`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.get('/api/drivers', async (req, res) => {
+  try { const r = await sql`SELECT * FROM drivers`; res.json(r); } catch(err) { res.json([]); }
+});
+app.post('/api/drivers', authenticate, async (req, res) => {
+  try { await sql`INSERT INTO drivers (name, phone, status) VALUES (${req.body.name}, ${req.body.phone}, ${req.body.status})`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.delete('/api/drivers/:id', authenticate, async (req, res) => {
+  try { await sql`DELETE FROM drivers WHERE id=${req.params.id}`; res.json({success:true}); } catch(err: any) { res.status(500).json({error: err.message}); }
+});
+app.get('/api/customers', async (req, res) => {
+  try { const r = await sql`SELECT * FROM customers`; res.json(r); } catch(err) { res.json([]); }
+});
+app.get('/api/stock-logs', async (req, res) => {
+  try { const r = await sql`SELECT * FROM stock_logs`; res.json(r); } catch(err) { res.json([]); }
 });
 
 app.listen(PORT, async () => {

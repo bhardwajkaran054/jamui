@@ -128,6 +128,14 @@ export default async function handler(req: Request) {
       await sql`CREATE TABLE IF NOT EXISTS delivery_zones (id SERIAL PRIMARY KEY, name VARCHAR(100), fee DECIMAL(10,2), min_order DECIMAL(10,2))`;
       await sql`CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, username VARCHAR(100) UNIQUE, password VARCHAR(255))`;
       
+      
+      try { await sql('ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 100'); } catch(e) {}
+      try { await sql('ALTER TABLE products ADD COLUMN image TEXT'); } catch(e) {}
+      await sql('CREATE TABLE IF NOT EXISTS settings (id SERIAL PRIMARY KEY, public_order_token TEXT)');
+      await sql('CREATE TABLE IF NOT EXISTS drivers (id SERIAL PRIMARY KEY, name TEXT, phone TEXT, status TEXT)');
+      await sql('CREATE TABLE IF NOT EXISTS customers (id SERIAL PRIMARY KEY, name TEXT, phone TEXT, loyalty_points INTEGER DEFAULT 0, total_spent REAL DEFAULT 0, order_count INTEGER DEFAULT 0)');
+      await sql('CREATE TABLE IF NOT EXISTS stock_logs (id SERIAL PRIMARY KEY, product_id INTEGER, change INTEGER, reason TEXT, created_at TIMESTAMP DEFAULT NOW())');
+
       const products = await sql`SELECT COUNT(*) as count FROM products`;
       if (parseInt(products[0].count) === 0) {
         await sql`INSERT INTO products (name, price, unit, category, emoji) VALUES ('Kasturi Rice 26 kg', 830, '26kg', 'Rice', '🌾'), ('Kasturi Rice 1 kg', 35, '1kg', 'Rice', '🌾'), ('Vardhman Mini Kit 26 kg', 1320, '26kg', 'Rice', '🌾'), ('Fortune Mini Kit 26 kg', 1430, '26kg', 'Rice', '🌾'), ('Fortune Mini Kit 1 kg', 58, '1kg', 'Rice', '🌾'), ('Refined Oil 1 Liter', 135, '1L', 'Oil', '🫙'), ('Mustard Oil 1 Liter', 170, '1L', 'Oil', '🫙'), ('Toor Dal 1 kg', 125, '1kg', 'Dal', '🫘'), ('Dalmia Gold 250 gm', 110, '250gm', 'Dal', '🫘'), ('Sugar 1 kg', 48, '1kg', 'Atta & Sugar', '🍬'), ('Aashirvaad Atta 5 kg', 235, '5kg', 'Atta & Sugar', '🌿'), ('Loose Atta 1 kg', 35, '1kg', 'Atta & Sugar', '🌿'), ('Chana Dal 1 kg', 80, '1kg', 'Dal', '🫘'), ('Kabuli Chana 1 kg', 110, '1kg', 'Dal', '🫘'), ('Atta 26 kg', 850, '26kg', 'Atta & Sugar', '🌿')`;
@@ -145,6 +153,95 @@ export default async function handler(req: Request) {
       }
       
       return Response.json({ success: true, message: 'Database initialized' });
+    }
+
+    
+    if (path === '/products' && req.method === 'POST') {
+      authenticate(req.headers.get('authorization'));
+      const { id, name, price, unit, category, emoji, stock, image } = await req.json() as any;
+      if (id) {
+        await sql('UPDATE products SET name=$1, price=$2, unit=$3, category=$4, emoji=$5, stock=$6, image=$7 WHERE id=$8', [name, price, unit, category, emoji, stock || 100, image || null, id]);
+      } else {
+        await sql('INSERT INTO products (name, price, unit, category, emoji, stock, image) VALUES ($1, $2, $3, $4, $5, $6, $7)', [name, price, unit, category, emoji, stock || 100, image || null]);
+      }
+      return Response.json({success:true});
+    }
+    if (path.startsWith('/products/') && req.method === 'DELETE') {
+      authenticate(req.headers.get('authorization'));
+      await sql('DELETE FROM products WHERE id=$1', [path.split('/')[2]]);
+      return Response.json({success:true});
+    }
+    if (path === '/categories' && req.method === 'POST') {
+      authenticate(req.headers.get('authorization'));
+      return Response.json({success:true});
+    }
+    if (path.startsWith('/categories/') && req.method === 'DELETE') {
+      authenticate(req.headers.get('authorization'));
+      await sql("UPDATE products SET category='Other' WHERE category=$1", [decodeURIComponent(path.split('/')[2])]);
+      return Response.json({success:true});
+    }
+    if (path === '/notices' && req.method === 'POST') {
+      authenticate(req.headers.get('authorization'));
+      const { text } = await req.json() as any;
+      await sql('UPDATE notices SET active=false');
+      await sql('INSERT INTO notices (text, active) VALUES ($1, true)', [text]);
+      return Response.json({success:true});
+    }
+    if (path === '/promo-codes' && req.method === 'POST') {
+        authenticate(req.headers.get('authorization'));
+        const {code, discount} = await req.json() as any;
+        await sql('INSERT INTO promo_codes (code, discount, type) VALUES ($1, $2, $3)', [code, discount, 'percentage']);
+        return Response.json({success:true});
+    }
+    if (path.startsWith('/promo-codes/') && req.method === 'DELETE') {
+        authenticate(req.headers.get('authorization'));
+        await sql('DELETE FROM promo_codes WHERE code=$1', [path.split('/')[2]]);
+        return Response.json({success:true});
+    }
+    if (path === '/delivery-zones' && req.method === 'POST') {
+        authenticate(req.headers.get('authorization'));
+        const {name, fee} = await req.json() as any;
+        await sql('INSERT INTO delivery_zones (name, fee) VALUES ($1, $2)', [name, fee]);
+        return Response.json({success:true});
+    }
+    if (path.startsWith('/delivery-zones/') && req.method === 'DELETE') {
+        authenticate(req.headers.get('authorization'));
+        await sql('DELETE FROM delivery_zones WHERE name=$1', [decodeURIComponent(path.split('/')[2])]);
+        return Response.json({success:true});
+    }
+    if (path.startsWith('/orders/') && req.method === 'DELETE') {
+        authenticate(req.headers.get('authorization'));
+        await sql('DELETE FROM orders WHERE id=$1', [path.split('/')[2]]);
+        return Response.json({success:true});
+    }
+    if (path === '/settings' && req.method === 'GET') {
+        try { const r = await sql('SELECT * FROM settings ORDER BY id DESC LIMIT 1'); return Response.json(r[0] || {publicOrderToken:''}); } catch(e) { return Response.json({publicOrderToken:''}); }
+    }
+    if (path === '/settings' && req.method === 'POST') {
+        authenticate(req.headers.get('authorization'));
+        const {publicOrderToken} = await req.json() as any;
+        await sql('INSERT INTO settings (public_order_token) VALUES ($1)', [publicOrderToken]);
+        return Response.json({success:true});
+    }
+    if (path === '/drivers' && req.method === 'GET') {
+        try { const r = await sql('SELECT * FROM drivers'); return Response.json(r); } catch(e) { return Response.json([]); }
+    }
+    if (path === '/drivers' && req.method === 'POST') {
+        authenticate(req.headers.get('authorization'));
+        const {name, phone, status} = await req.json() as any;
+        await sql('INSERT INTO drivers (name, phone, status) VALUES ($1, $2, $3)', [name, phone, status]);
+        return Response.json({success:true});
+    }
+    if (path.startsWith('/drivers/') && req.method === 'DELETE') {
+        authenticate(req.headers.get('authorization'));
+        await sql('DELETE FROM drivers WHERE id=$1', [path.split('/')[2]]);
+        return Response.json({success:true});
+    }
+    if (path === '/customers' && req.method === 'GET') {
+        try { const r = await sql('SELECT * FROM customers'); return Response.json(r); } catch(e) { return Response.json([]); }
+    }
+    if (path === '/stock-logs' && req.method === 'GET') {
+        try { const r = await sql('SELECT * FROM stock_logs'); return Response.json(r); } catch(e) { return Response.json([]); }
     }
 
     if (path === '/health' && req.method === 'GET') {
