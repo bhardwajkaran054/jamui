@@ -20,12 +20,19 @@ export const apiFetch = async <T = unknown>(
   options: ApiFetchOptions = {}
 ): Promise<T> => {
   const url = `/api${endpoint}`;
+  
+  const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('jamuiToken') : null;
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
