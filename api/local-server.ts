@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { neon } from '@neondatabase/serverless';
+import sqlite3 from 'sqlite3';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -11,7 +12,35 @@ const PORT = 5001;
 app.use(cors());
 app.use(express.json());
 
-const sql = neon(process.env.DATABASE_URL!);
+let sql: any;
+if (process.env.DATABASE_URL) {
+  sql = neon(process.env.DATABASE_URL);
+} else {
+  console.log('Using local SQLite fallback');
+  const db = new sqlite3.Database('database.sqlite');
+  sql = function(strings: TemplateStringsArray, ...values: any[]) {
+    return new Promise((resolve, reject) => {
+      let query = strings.reduce((acc, str, i) => acc + str + (i < values.length ? '?' : ''), '');
+      
+      // SQLite specific replaces for Neon PostgreSQL schema
+      query = query.replace(/SERIAL PRIMARY KEY/g, 'INTEGER PRIMARY KEY AUTOINCREMENT');
+      query = query.replace(/JSONB/g, 'TEXT');
+      query = query.replace(/NOW\(\)/g, 'CURRENT_TIMESTAMP');
+      
+      const isSelect = /^\s*SELECT\b/i.test(query) || /\bRETURNING\b/i.test(query);
+      if (isSelect) {
+        db.all(query, values, (err, rows) => {
+          if (err) reject(err); else resolve(rows || []);
+        });
+      } else {
+        db.run(query, values, function(err) {
+          if (err) reject(err); else resolve([{ id: this.lastID }]);
+        });
+      }
+    });
+  };
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
 
 async function initDb() {

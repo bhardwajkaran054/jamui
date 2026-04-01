@@ -1,0 +1,29 @@
+commit cb899737255b383c882650da7365129b285e643c
+Author: Karan Bhardwaj <bhardwajkaran054@gmail.com>
+Date:   Wed Mar 25 22:37:29 2026 +0530
+
+    Delete CNAME
+
+commit ab2d2e833d4a82575e3e18c722f1ebff0334d15e
+Author: whoismonesh <moneshram7@gmail.com>
+Date:   Tue Mar 24 15:59:45 2026 +0530
+
+    Add simple health endpoint
+
+commit bcd6fb16e9b8a26a5c51e0ed8525c529e60a26dd
+Author: whoismonesh <moneshram7@gmail.com>
+Date:   Tue Mar 24 15:58:42 2026 +0530
+
+    Test Vercel API routing
+
+commit ec1a347b2f408fcb1f269055496cf43d2dab7977
+Author: whoismonesh <moneshram7@gmail.com>
+Date:   Tue Mar 24 15:57:48 2026 +0530
+
+    Try @vercel/node runtime
+
+commit 4aee1ecf6161a93b4225b60de298204cbf338f28
+Author: whoismonesh <moneshram7@gmail.com>
+Date:   Tue Mar 24 15:56:55 2026 +0530
+
+    Add function config for Vercel API
