@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
+export const config = { runtime: 'edge' };
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
 
