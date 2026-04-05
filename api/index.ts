@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
-export const config = { runtime: 'edge' };
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
 
@@ -25,7 +24,8 @@ function authenticate(authHeader: string | null) {
 }
 
 export default async function handler(req: Request) {
-  const url = new URL(req.url);
+  const base = req.url.startsWith('http') ? undefined : `https://${req.headers.get('host') || req.headers.get('x-forwarded-host') || 'localhost'}`;
+  const url = new URL(req.url, base);
   const path = url.pathname.replace('/api', '');
 
   console.log('[API] Request:', path, req.method);
