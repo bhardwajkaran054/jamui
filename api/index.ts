@@ -1,10 +1,11 @@
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 
 export const dynamic = 'force-dynamic';
+export const config = { runtime: 'edge' };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'jamui_secret_123';
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'jamui_secret_123');
 
 function getSql() {
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
@@ -15,12 +16,13 @@ function getSql() {
   return neon(dbUrl);
 }
 
-function authenticate(authHeader: string | null) {
+async function authenticate(authHeader: string | null) {
   if (!authHeader?.startsWith('Bearer ')) {
     throw new Error('Unauthorized');
   }
   const token = authHeader.slice(7);
-  return jwt.verify(token, JWT_SECRET);
+  const { payload } = await jwtVerify(token, JWT_SECRET);
+  return payload;
 }
 
 export default async function handler(req: Request) {
@@ -54,12 +56,17 @@ export default async function handler(req: Request) {
       if (!valid) {
         return Response.json({ error: 'Invalid credentials' }, { status: 401 });
       }
-      const token = jwt.sign({ id: admin.id, username: admin.username }, JWT_SECRET, { expiresIn: '24h' });
+      
+      const token = await new SignJWT({ id: admin.id, username: admin.username })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime('24h')
+        .sign(JWT_SECRET);
+        
       return Response.json({ token, username: admin.username });
     }
 
     if (path === '/orders' && req.method === 'GET') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       const orders = await sql('SELECT * FROM orders ORDER BY id DESC');
       return Response.json(orders);
     }
@@ -78,7 +85,7 @@ export default async function handler(req: Request) {
     }
 
     if (path.startsWith('/orders/') && req.method === 'PUT') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       const id = path.split('/')[2];
       const { status, deliveryHours, deliveryMessage, rejectionReason } = await req.json() as {
         status: string;
@@ -158,7 +165,7 @@ export default async function handler(req: Request) {
 
     
     if (path === '/products' && req.method === 'POST') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       const { id, name, price, unit, category, emoji, stock, image } = await req.json() as any;
       if (id) {
         await sql('UPDATE products SET name=$1, price=$2, unit=$3, category=$4, emoji=$5, stock=$6, image=$7 WHERE id=$8', [name, price, unit, category, emoji, stock || 100, image || null, id]);
@@ -168,50 +175,50 @@ export default async function handler(req: Request) {
       return Response.json({success:true});
     }
     if (path.startsWith('/products/') && req.method === 'DELETE') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       await sql('DELETE FROM products WHERE id=$1', [path.split('/')[2]]);
       return Response.json({success:true});
     }
     if (path === '/categories' && req.method === 'POST') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       return Response.json({success:true});
     }
     if (path.startsWith('/categories/') && req.method === 'DELETE') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       await sql("UPDATE products SET category='Other' WHERE category=$1", [decodeURIComponent(path.split('/')[2])]);
       return Response.json({success:true});
     }
     if (path === '/notices' && req.method === 'POST') {
-      authenticate(req.headers.get('authorization'));
+      await authenticate(req.headers.get('authorization'));
       const { text } = await req.json() as any;
       await sql('UPDATE notices SET active=false');
       await sql('INSERT INTO notices (text, active) VALUES ($1, true)', [text]);
       return Response.json({success:true});
     }
     if (path === '/promo-codes' && req.method === 'POST') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         const {code, discount} = await req.json() as any;
         await sql('INSERT INTO promo_codes (code, discount, type) VALUES ($1, $2, $3)', [code, discount, 'percentage']);
         return Response.json({success:true});
     }
     if (path.startsWith('/promo-codes/') && req.method === 'DELETE') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         await sql('DELETE FROM promo_codes WHERE code=$1', [path.split('/')[2]]);
         return Response.json({success:true});
     }
     if (path === '/delivery-zones' && req.method === 'POST') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         const {name, fee} = await req.json() as any;
         await sql('INSERT INTO delivery_zones (name, fee) VALUES ($1, $2)', [name, fee]);
         return Response.json({success:true});
     }
     if (path.startsWith('/delivery-zones/') && req.method === 'DELETE') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         await sql('DELETE FROM delivery_zones WHERE name=$1', [decodeURIComponent(path.split('/')[2])]);
         return Response.json({success:true});
     }
     if (path.startsWith('/orders/') && req.method === 'DELETE') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         await sql('DELETE FROM orders WHERE id=$1', [path.split('/')[2]]);
         return Response.json({success:true});
     }
@@ -219,7 +226,7 @@ export default async function handler(req: Request) {
         try { const r = await sql('SELECT * FROM settings ORDER BY id DESC LIMIT 1'); return Response.json(r[0] || {publicOrderToken:''}); } catch(e) { return Response.json({publicOrderToken:''}); }
     }
     if (path === '/settings' && req.method === 'POST') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         const {publicOrderToken} = await req.json() as any;
         await sql('INSERT INTO settings (public_order_token) VALUES ($1)', [publicOrderToken]);
         return Response.json({success:true});
@@ -228,13 +235,13 @@ export default async function handler(req: Request) {
         try { const r = await sql('SELECT * FROM drivers'); return Response.json(r); } catch(e) { return Response.json([]); }
     }
     if (path === '/drivers' && req.method === 'POST') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         const {name, phone, status} = await req.json() as any;
         await sql('INSERT INTO drivers (name, phone, status) VALUES ($1, $2, $3)', [name, phone, status]);
         return Response.json({success:true});
     }
     if (path.startsWith('/drivers/') && req.method === 'DELETE') {
-        authenticate(req.headers.get('authorization'));
+        await authenticate(req.headers.get('authorization'));
         await sql('DELETE FROM drivers WHERE id=$1', [path.split('/')[2]]);
         return Response.json({success:true});
     }
