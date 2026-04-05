@@ -1,11 +1,17 @@
 import { neon } from '@neondatabase/serverless';
-import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
 export const dynamic = 'force-dynamic';
 export const config = { runtime: 'edge' };
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'jamui_secret_123');
+const JWT_SECRET_STRING = process.env.JWT_SECRET || 'jamui_secret_123';
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+
+async function hashPassword(password: string) {
+  const data = new TextEncoder().encode(password + JWT_SECRET_STRING);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 function getSql() {
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
@@ -52,7 +58,7 @@ export default async function handler(req: Request) {
         return Response.json({ error: 'Invalid credentials' }, { status: 401 });
       }
       const admin = admins[0];
-      const valid = await bcrypt.compare(password, admin.password);
+      const valid = await hashPassword(password) === admin.password;
       if (!valid) {
         return Response.json({ error: 'Invalid credentials' }, { status: 401 });
       }
@@ -120,7 +126,7 @@ export default async function handler(req: Request) {
 
     if (path === '/setup-admin' && req.method === 'POST') {
       const { username, password } = await req.json() as { username: string; password: string };
-      const hash = await bcrypt.hash(password, 10);
+      const hash = await hashPassword(password);
       await sql(
         'INSERT INTO admins (username, password) VALUES ($1, $2) ON CONFLICT (username) DO UPDATE SET password = $2',
         [username, hash]
@@ -156,7 +162,7 @@ export default async function handler(req: Request) {
       
       const adminCount = await sql`SELECT COUNT(*) as count FROM admins`;
       if (parseInt(adminCount[0].count) === 0) {
-        const hash = await bcrypt.hash('admin123', 10);
+        const hash = await hashPassword('admin123');
         await sql`INSERT INTO admins (username, password) VALUES ('admin', ${hash})`;
       }
       
